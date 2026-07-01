@@ -396,7 +396,14 @@ function decryptText(ciphertext, key) {
 
 const SUPABASE_URL = 'https://lusbgrrjoijwktlbyzpy.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1c2JncnJqb2lqd2t0bGJ5enB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzAwOTYsImV4cCI6MjA5ODEwNjA5Nn0.clS010P_sdRtnHTH1_cJatqtdlQ_6pfrUiHAefdJkd4';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+  }
+});
 let currentUser = null;
 
 async function setupUser(user) {
