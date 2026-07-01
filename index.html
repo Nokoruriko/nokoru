@@ -426,12 +426,12 @@ async function setupUser(user) {
   }
 }
 
-// 認証状態の監視（全イベントに対応）
+// 認証状態の監視
 sb.auth.onAuthStateChange(async (event, session) => {
   console.log('Auth event:', event, session ? 'session exists' : 'no session');
-  if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+  if (session) {
     await setupUser(session.user);
-  } else if (!session || event === 'SIGNED_OUT') {
+  } else if (event === 'SIGNED_OUT') {
     currentUser = null;
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
