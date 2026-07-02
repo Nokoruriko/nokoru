@@ -405,7 +405,11 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 let currentUser = null;
 
+let isSetup = false;
+
 async function setupUser(user) {
+  if (isSetup) return;
+  isSetup = true;
   currentUser = user;
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -421,16 +425,28 @@ async function setupUser(user) {
     ]);
   } catch(e) {
     console.error('読み込みエラー:', e);
-    showToast('データの読み込みに失敗しました。再読み込みしてください。');
+    showToast('データの読み込みに失敗しました。リロードしてください。');
   }
 }
 
-// 認証状態の監視
+// ページ読み込み時にセッション確認（最優先）
+window.addEventListener('load', async () => {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user) {
+      await setupUser(session.user);
+    }
+  } catch(e) {
+    console.error('セッション確認エラー:', e);
+  }
+});
+
+// 認証状態の監視（新規ログイン時のみ）
 sb.auth.onAuthStateChange(async (event, session) => {
-  console.log('Auth event:', event, session ? 'session exists' : 'no session');
-  if (session) {
+  if (event === 'SIGNED_IN' && session && !isSetup) {
     await setupUser(session.user);
   } else if (event === 'SIGNED_OUT') {
+    isSetup = false;
     currentUser = null;
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
@@ -464,6 +480,7 @@ async function doSignup() {
 }
 
 async function doLogout() {
+  isSetup = false;
   await sb.auth.signOut();
 }
 
