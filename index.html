@@ -606,7 +606,48 @@ function unlockNext2(){
   document.getElementById('confirm-file2').textContent='✅ '+document.getElementById('file-name2').textContent;
   closeModal('unlock-step2');openModal('unlock-step3');
 }
-async function submitUnlock(){closeModal('unlock-step3');showToast('申請を送信しました。運営が確認します。');openModal('unlock-done');}
+async function submitUnlock(){
+  closeModal('unlock-step3');
+  showToast('送信中...');
+
+  try {
+    const reason = document.getElementById('unlock-reason').value;
+    let certificateUrl = null;
+
+    // 死亡診断書があればStorageにアップロード
+    const fileInput = document.getElementById('file-input2');
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      const ext = file.name.split('.').pop();
+      const filePath = `${currentUser.id}/${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await sb.storage
+        .from('death-certificates')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) {
+        showToast('ファイルのアップロードに失敗しました: ' + uploadError.message);
+        return;
+      }
+      certificateUrl = filePath;
+    }
+
+    // unlock_requestsテーブルに申請を保存
+    const { error: insertError } = await sb.from('unlock_requests').insert({
+      owner_id: currentUnlockTarget.id,
+      requester_id: currentUser.id,
+      reason: reason,
+      certificate_url: certificateUrl,
+      status: 'pending',
+    });
+    if (insertError) {
+      showToast('申請の送信に失敗しました: ' + insertError.message);
+      return;
+    }
+
+    openModal('unlock-done');
+  } catch(e) {
+    showToast('エラーが発生しました: ' + e.message);
+  }
+}
 function handleFile2(input){
   if(input.files&&input.files[0]){
     document.getElementById('file-name2').textContent=input.files[0].name;
