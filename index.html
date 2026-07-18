@@ -3,134 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-<title>Nokoru — サブスク管理 & デジタル遺産</title>
+<title>Nokoru</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #F7F6F3; --surface: #FFFFFF; --border: #E8E6E0;
-  --text: #1A1A18; --text-sub: #6B6A65; --text-muted: #A0A09A;
-  --accent: #3D6B4F; --accent-light: #EAF2ED; --accent-mid: #C5DDC9;
-  --danger: #C0392B; --danger-light: #FDECEA;
-  --warning: #B85C00; --warning-light: #FEF3E8;
-  --success: #2E7D4F; --success-light: #E8F5EE;
-  --radius: 12px; --radius-sm: 8px;
-}
-body { font-family: -apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif; background:#e0e0e0; display:flex; justify-content:center; min-height:100vh; }
-.shell { width:390px; min-height:100vh; background:var(--bg); display:flex; flex-direction:column; }
-.header { background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
-.header-inner { padding:52px 20px 14px; display:flex; justify-content:space-between; align-items:center; }
-.logo { font-size:22px; font-weight:700; color:var(--accent); letter-spacing:-0.5px; }
-.logo span { color:var(--text); font-weight:300; }
-.avatar { width:36px; height:36px; border-radius:50%; background:var(--accent-light); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; cursor:pointer; }
-.inner-tabs { display:flex; border-top:1px solid var(--border); }
-.inner-tab { flex:1; text-align:center; padding:10px 4px; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; }
-.inner-tab.active { color:var(--accent); border-bottom:2px solid var(--accent); }
-.screen { display:none; flex:1; overflow-y:auto; padding-bottom:16px; }
-.screen.active { display:block; }
-.bottom-nav { background:var(--surface); border-top:1px solid var(--border); display:flex; padding:8px 0 20px; flex-shrink:0; }
-.nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; padding:4px; color:var(--text-muted); font-size:10px; position:relative; }
-.nav-item svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8; }
-.nav-item.active { color:var(--accent); }
-.nav-dot { position:absolute; top:2px; right:18px; width:8px; height:8px; background:var(--danger); border-radius:50%; border:2px solid var(--surface); }
-.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin:0 16px 12px; }
-.section-head { padding:16px 20px 8px; display:flex; justify-content:space-between; align-items:baseline; }
-.section-head h2 { font-size:17px; font-weight:700; }
-.section-head a { font-size:13px; color:var(--accent); cursor:pointer; }
-.badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:99px; }
-.badge-ok { background:var(--success-light); color:var(--success); }
-.badge-warn { background:var(--warning-light); color:var(--warning); }
-.badge-muted { background:#F0F0EE; color:var(--text-muted); }
-.btn { width:100%; padding:13px; border-radius:var(--radius-sm); font-size:14px; font-weight:600; cursor:pointer; border:none; }
-.btn-accent { background:var(--accent); color:white; }
-.btn-danger { background:var(--danger); color:white; }
-.btn-ghost { background:transparent; border:1.5px solid var(--border); color:var(--text); }
-.sub-item { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
-.sub-item:last-child { border-bottom:none; }
-.sub-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:white; flex-shrink:0; }
-.sub-info { flex:1; }
-.sub-name { font-size:14px; font-weight:600; }
-.sub-date { font-size:12px; color:var(--text-muted); margin-top:2px; }
-.sub-right { text-align:right; }
-.sub-price { font-size:14px; font-weight:600; }
-.sub-cycle { font-size:11px; color:var(--text-muted); }
-.total-banner { background:var(--accent); margin:16px 16px 0; border-radius:var(--radius); padding:18px 20px; color:white; display:flex; justify-content:space-between; align-items:center; }
-.total-banner .amount { font-size:28px; font-weight:700; letter-spacing:-1px; }
-.total-banner .label { font-size:12px; opacity:0.75; margin-bottom:4px; }
-.total-banner .sub-label { font-size:12px; opacity:0.65; }
-.total-banner .count-num { font-size:32px; font-weight:700; text-align:right; }
-.checkin { margin:0 16px 12px; background:var(--accent-light); border:1px solid var(--accent-mid); border-radius:var(--radius); padding:14px 16px; display:flex; align-items:center; gap:12px; }
-.checkin svg { width:22px; height:22px; stroke:var(--accent); fill:none; stroke-width:1.8; flex-shrink:0; }
-.checkin-text { flex:1; font-size:13px; color:var(--accent); line-height:1.5; }
-.checkin-btn { background:var(--accent); color:white; border:none; border-radius:var(--radius-sm); padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer; }
-.add-btn { margin:0 16px 12px; border:1.5px dashed var(--border); border-radius:var(--radius); padding:14px; text-align:center; color:var(--text-muted); font-size:13px; cursor:pointer; }
-.info-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); }
-.info-row:last-child { border-bottom:none; }
-.info-label { font-size:13px; color:var(--text-sub); }
-.info-value { font-size:13px; font-weight:500; }
-.alert { margin:12px 16px; border-radius:var(--radius); padding:13px 14px; display:flex; gap:10px; align-items:flex-start; }
-.alert svg { width:18px; height:18px; flex-shrink:0; margin-top:1px; }
-.alert-warn { background:var(--warning-light); border:1px solid #F5CBA7; }
-.alert-danger { background:var(--danger-light); border:1px solid #F5C6C2; }
-.person-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin:0 16px 10px; }
-.person-card-head { padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
-.person-card-body { padding:10px 16px; display:flex; gap:16px; }
-.person-card-footer { padding:9px 16px; border-top:1px solid var(--border); }
-.person-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; }
-.meta-label { font-size:11px; color:var(--text-muted); margin-bottom:2px; }
-.meta-value { font-size:13px; font-weight:600; }
-.role-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin:0 16px 12px; overflow:hidden; }
-.role-card-head { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
-.role-icon { width:34px; height:34px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; }
-.role-icon svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; }
-.person-row { display:flex; align-items:center; gap:12px; padding:11px 16px; border-bottom:1px solid var(--border); }
-.person-row:last-child { border-bottom:none; }
-.p-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; flex-shrink:0; }
-.add-person { padding:11px 16px; display:flex; align-items:center; gap:8px; color:var(--accent); font-size:13px; cursor:pointer; }
-.pw-value { font-family:monospace; font-size:13px; font-weight:500; filter:blur(5px); transition:filter 0.2s; cursor:pointer; }
-.pw-value.revealed { filter:none; }
-.step-row { display:flex; gap:12px; align-items:flex-start; padding:7px 0; }
-.step-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:3px; }
-.dot-done { background:var(--success); }
-.dot-pending { background:var(--border); }
-.result-screen { display:flex; flex-direction:column; align-items:center; padding:50px 20px 20px; text-align:center; }
-.result-icon { width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
-.result-icon svg { width:36px; height:36px; stroke:currentColor; fill:none; stroke-width:2.5; }
-.utab-row { display:flex; gap:8px; margin:14px 16px 0; }
-.utab { flex:1; padding:8px; text-align:center; font-size:13px; font-weight:500; border-radius:var(--radius-sm); border:1px solid var(--border); color:var(--text-muted); cursor:pointer; }
-.utab.active { background:var(--accent-light); color:var(--accent); border-color:var(--accent-mid); }
-.loading { text-align:center; padding:40px 20px; color:var(--text-muted); font-size:14px; }
-.empty { text-align:center; padding:32px 20px; color:var(--text-muted); font-size:13px; line-height:1.7; }
-.auth-screen { position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 24px; background:var(--bg); overflow-y:auto; }
-.auth-logo { font-size:28px; font-weight:700; color:var(--accent); margin-bottom:4px; }
-.auth-sub { font-size:13px; color:var(--text-muted); margin-bottom:32px; }
-.auth-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; width:100%; max-width:360px; }
-.auth-tab { display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; }
-.auth-tab-item { flex:1; text-align:center; padding:10px; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; }
-.auth-tab-item.active { color:var(--accent); border-bottom:2px solid var(--accent); }
-.field { margin-bottom:14px; }
-.field label { font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px; }
-.field input, .field select { width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:14px; color:var(--text); background:var(--bg); outline:none; }
-.field input:focus, .field select:focus { border-color:var(--accent); }
-.toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1A1A18; color:white; padding:10px 20px; border-radius:99px; font-size:13px; font-weight:500; z-index:999; opacity:0; transition:opacity 0.3s; pointer-events:none; white-space:nowrap; }
-.toast.show { opacity:1; }
-/* モーダル */
-.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:500; }
-.modal-bg.open { display:flex; align-items:flex-end; justify-content:center; }
-.modal-box { background:var(--surface); border-radius:20px 20px 0 0; padding:20px 20px 40px; width:390px; max-height:85vh; overflow-y:auto; }
-.modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-.modal-head h3 { font-size:16px; font-weight:700; }
-.modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); line-height:1; padding:0 4px; }
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#F7F6F3;--surface:#FFF;--border:#E8E6E0;--text:#1A1A18;--text-sub:#6B6A65;--text-muted:#A0A09A;--accent:#3D6B4F;--accent-light:#EAF2ED;--accent-mid:#C5DDC9;--danger:#C0392B;--danger-light:#FDECEA;--warning:#B85C00;--warning-light:#FEF3E8;--success:#2E7D4F;--success-light:#E8F5EE;--radius:12px;--radius-sm:8px;}
+body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;background:#e0e0e0;display:flex;justify-content:center;min-height:100vh;}
+.shell{width:390px;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.header-inner{padding:52px 20px 14px;display:flex;justify-content:space-between;align-items:center;}
+.logo{font-size:22px;font-weight:700;color:var(--accent);}
+.logo span{color:var(--text);font-weight:300;}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;cursor:pointer;}
+.inner-tabs{display:flex;border-top:1px solid var(--border);}
+.inner-tab{flex:1;text-align:center;padding:10px 4px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;}
+.inner-tab.active{color:var(--accent);border-bottom:2px solid var(--accent);}
+.screen{display:none;flex:1;overflow-y:auto;padding-bottom:16px;}
+.screen.active{display:block;}
+.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 20px;flex-shrink:0;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px;color:var(--text-muted);font-size:10px;}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;}
+.nav-item.active{color:var(--accent);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin:0 16px 12px;}
+.section-head{padding:16px 20px 8px;display:flex;justify-content:space-between;align-items:baseline;}
+.section-head h2{font-size:17px;font-weight:700;}
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;}
+.badge-ok{background:var(--success-light);color:var(--success);}
+.badge-warn{background:var(--warning-light);color:var(--warning);}
+.btn{width:100%;padding:13px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;border:none;}
+.btn-accent{background:var(--accent);color:white;}
+.btn-danger{background:var(--danger);color:white;}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+.sub-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.sub-item:last-child{border-bottom:none;}
+.sub-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white;flex-shrink:0;}
+.sub-info{flex:1;}
+.sub-name{font-size:14px;font-weight:600;}
+.sub-date{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.sub-right{text-align:right;}
+.sub-price{font-size:14px;font-weight:600;}
+.sub-cycle{font-size:11px;color:var(--text-muted);}
+.total-banner{background:var(--accent);margin:16px 16px 0;border-radius:var(--radius);padding:18px 20px;color:white;display:flex;justify-content:space-between;align-items:center;}
+.total-banner .amount{font-size:28px;font-weight:700;letter-spacing:-1px;}
+.total-banner .label{font-size:12px;opacity:.75;margin-bottom:4px;}
+.total-banner .sub-label{font-size:12px;opacity:.65;}
+.total-banner .count-num{font-size:32px;font-weight:700;text-align:right;}
+.checkin{margin:0 16px 12px;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.checkin svg{width:22px;height:22px;stroke:var(--accent);fill:none;stroke-width:1.8;flex-shrink:0;}
+.checkin-text{flex:1;font-size:13px;color:var(--accent);line-height:1.5;}
+.checkin-btn{background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;}
+.add-btn{margin:0 16px 12px;border:1.5px dashed var(--border);border-radius:var(--radius);padding:14px;text-align:center;color:var(--text-muted);font-size:13px;cursor:pointer;}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
+.info-row:last-child{border-bottom:none;}
+.info-label{font-size:13px;color:var(--text-sub);}
+.info-value{font-size:13px;font-weight:500;}
+.role-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin:0 16px 12px;overflow:hidden;}
+.role-card-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.role-icon{width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;}
+.role-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
+.person-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);}
+.person-row:last-child{border-bottom:none;}
+.p-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+.add-person{padding:11px 16px;display:flex;align-items:center;gap:8px;color:var(--accent);font-size:13px;cursor:pointer;}
+.pw-value{font-family:monospace;font-size:13px;font-weight:500;filter:blur(5px);transition:filter .2s;cursor:pointer;}
+.pw-value.revealed{filter:none;}
+.utab-row{display:flex;gap:8px;margin:14px 16px 0;}
+.utab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;border-radius:var(--radius-sm);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;}
+.utab.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent-mid);}
+.loading{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:14px;}
+.empty{text-align:center;padding:32px 20px;color:var(--text-muted);font-size:13px;line-height:1.7;}
+.auth-screen{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--bg);overflow-y:auto;}
+.auth-logo{font-size:28px;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--text-muted);margin-bottom:32px;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:100%;max-width:360px;}
+.auth-tab{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.auth-tab-item{flex:1;text-align:center;padding:10px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;}
+.auth-tab-item.active{color:var(--accent);border-bottom:2px solid var(--accent);}
+.field{margin-bottom:14px;}
+.field label{font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;}
+.field input,.field select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--bg);outline:none;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1A1A18;color:white;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;}
+.modal-bg.open{display:flex;align-items:flex-end;justify-content:center;}
+.modal-box{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px 40px;width:390px;max-height:85vh;overflow-y:auto;position:relative;z-index:501;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-head h3{font-size:16px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);}
+.trustee-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:0 16px 12px;}
+.trustee-card-head{padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.trustee-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;}
+#service-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:600;max-height:200px;overflow-y:auto;}
 </style>
 </head>
 <body>
 
-<!-- 認証画面 -->
 <div id="auth-screen" class="auth-screen">
   <div class="auth-logo">Nokoru</div>
-  <div class="auth-sub">サブスク管理 & デジタル遺産</div>
+  <div class="auth-sub">サブスク管理 & デジタル終活</div>
   <div class="auth-card">
     <div class="auth-tab">
       <div class="auth-tab-item active" id="tab-login" onclick="switchAuthTab('login')">ログイン</div>
@@ -151,57 +123,47 @@ body { font-family: -apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif; bac
   </div>
 </div>
 
-<!-- メインアプリ -->
 <div id="app" class="shell" style="display:none;">
   <div class="header" id="header-home">
     <div class="header-inner">
       <div class="logo">Nokoru<span> / ノコル</span></div>
-      <div class="avatar" id="user-avatar" onclick="doLogout()">田</div>
+      <div class="avatar" id="user-avatar" onclick="goScreen('settings')">田</div>
     </div>
   </div>
   <div class="header" id="header-trust" style="display:none;">
     <div class="header-inner">
       <div style="font-size:18px;font-weight:700;">もしもの時</div>
-      <div class="avatar" onclick="doLogout()">田</div>
+      <div class="avatar" onclick="goScreen('settings')">田</div>
     </div>
     <div class="inner-tabs">
       <div class="inner-tab active" id="itab-own" onclick="switchInnerTab('own')">自分の設定</div>
       <div class="inner-tab" id="itab-trustee" onclick="switchInnerTab('trustee')">手続きする人</div>
-
     </div>
   </div>
   <div class="header" id="header-unlocked" style="display:none;">
     <div class="header-inner">
-      <div style="font-size:18px;font-weight:700;">解錠済み</div>
+      <div><div style="font-size:11px;color:var(--text-muted);">解錠済み情報</div><div style="font-size:18px;font-weight:700;">閲覧モード</div></div>
       <span class="badge badge-ok" style="font-size:12px;padding:5px 12px;">閲覧可</span>
     </div>
   </div>
   <div class="header" id="header-settings" style="display:none;">
     <div class="header-inner">
       <div style="font-size:18px;font-weight:700;">設定</div>
-      <div class="avatar" onclick="doLogout()">田</div>
     </div>
   </div>
 
   <!-- サブスク -->
   <div id="screen-home" class="screen active">
     <div class="total-banner">
-      <div>
-        <div class="label">今月の合計</div>
-        <div class="amount" id="total-monthly">¥0</div>
-        <div class="sub-label" id="total-yearly">年間: ¥0</div>
-      </div>
-      <div>
-        <div class="count-num" id="total-count">0</div>
-        <div class="sub-label">件のサービス</div>
-      </div>
+      <div><div class="label">今月の合計</div><div class="amount" id="total-monthly">¥0</div><div class="sub-label" id="total-yearly">年間: ¥0</div></div>
+      <div><div class="count-num" id="total-count">0</div><div class="sub-label">件のサービス</div></div>
     </div>
-    <div class="section-head"><h2>契約中</h2><a onclick="openModal('add-service')">＋ 追加</a></div>
+    <div class="section-head"><h2>契約中</h2><a onclick="openModal('add-service')" style="font-size:13px;color:var(--accent);cursor:pointer;">＋ 追加</a></div>
     <div id="subs-list"><div class="loading">読み込み中...</div></div>
     <div class="add-btn" onclick="openModal('add-service')">＋ サービスを追加する</div>
     <div class="checkin">
       <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>
-      <div class="checkin-text">今月の生存確認<br><span style="font-size:11px;opacity:0.7;">受任者への安心のサイン</span></div>
+      <div class="checkin-text">今月の生存確認<br><span style="font-size:11px;opacity:.7;">手続きする人への安心のサイン</span></div>
       <button class="checkin-btn" onclick="doCheckin()">チェックイン</button>
     </div>
   </div>
@@ -209,70 +171,54 @@ body { font-family: -apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif; bac
   <!-- もしもの時 -->
   <div id="screen-trust" class="screen">
     <div id="panel-own">
-      <!-- 手順説明 -->
-      <div style="margin:12px 16px 0;">
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:10px;">もしもの時の仕組み</div>
-        <div style="display:flex;gap:0;overflow-x:auto;padding-bottom:4px;">
-          <!-- STEP 1 -->
-          <div style="min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-right:8px;flex-shrink:0;">
-            <div style="width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;margin-bottom:8px;">1</div>
-            <div style="font-size:12px;font-weight:600;margin-bottom:4px;">事前に設定</div>
-            <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">手続きする人・確認する人を登録しておく</div>
+      <!-- フロー説明 -->
+      <div style="margin:14px 16px 0;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:10px;">もしもの時の仕組み</div>
+        <div style="display:flex;overflow-x:auto;padding-bottom:6px;gap:0;">
+          <div style="min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-right:6px;flex-shrink:0;text-align:center;">
+            <div style="width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;margin:0 auto 6px;">1</div>
+            <div style="font-size:10px;font-weight:600;margin-bottom:2px;">事前に設定</div>
+            <div style="font-size:9px;color:var(--text-muted);line-height:1.4;">手続きする人を登録</div>
           </div>
-          <!-- 矢印 -->
-          <div style="display:flex;align-items:center;color:var(--text-muted);font-size:18px;margin-right:8px;flex-shrink:0;">→</div>
-          <!-- STEP 2 -->
-          <div style="min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-right:8px;flex-shrink:0;">
-            <div style="width:28px;height:28px;background:var(--warning);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;margin-bottom:8px;">2</div>
-            <div style="font-size:12px;font-weight:600;margin-bottom:4px;">解錠を申請</div>
-            <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">手続きする人が死亡診断書を提出して申請</div>
+          <div style="display:flex;align-items:center;color:var(--text-muted);font-size:14px;margin-right:6px;flex-shrink:0;">→</div>
+          <div style="min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-right:6px;flex-shrink:0;text-align:center;">
+            <div style="width:22px;height:22px;background:var(--warning);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;margin:0 auto 6px;">2</div>
+            <div style="font-size:10px;font-weight:600;margin-bottom:2px;">解錠を申請</div>
+            <div style="font-size:9px;color:var(--text-muted);line-height:1.4;">死亡診断書を提出</div>
           </div>
-          <!-- 矢印 -->
-          <div style="display:flex;align-items:center;color:var(--text-muted);font-size:18px;margin-right:8px;flex-shrink:0;">→</div>
-          <!-- STEP 3 -->
-          <div style="min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-right:8px;flex-shrink:0;">
-            <div style="width:28px;height:28px;background:var(--warning);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;margin-bottom:8px;">3</div>
-            <div style="font-size:12px;font-weight:600;margin-bottom:4px;">運営が確認</div>
-            <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">死亡診断書を運営が目視確認（24時間以内）</div>
+          <div style="display:flex;align-items:center;color:var(--text-muted);font-size:14px;margin-right:6px;flex-shrink:0;">→</div>
+          <div style="min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-right:6px;flex-shrink:0;text-align:center;">
+            <div style="width:22px;height:22px;background:var(--warning);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;margin:0 auto 6px;">3</div>
+            <div style="font-size:10px;font-weight:600;margin-bottom:2px;">運営が確認</div>
+            <div style="font-size:9px;color:var(--text-muted);line-height:1.4;">24時間以内</div>
           </div>
-          <!-- 矢印 -->
-          <div style="display:flex;align-items:center;color:var(--text-muted);font-size:18px;margin-right:8px;flex-shrink:0;">→</div>
-          <!-- STEP 4 -->
-          <div style="min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-right:8px;flex-shrink:0;">
-            <div style="width:28px;height:28px;background:var(--success);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;margin-bottom:8px;">4</div>
-            <div style="font-size:12px;font-weight:600;margin-bottom:4px;">確認する人が承認</div>
-            <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">確認する人が承認すると情報が開示される</div>
-          </div>
-          <!-- 矢印 -->
-          <div style="display:flex;align-items:center;color:var(--text-muted);font-size:18px;margin-right:8px;flex-shrink:0;">→</div>
-          <!-- STEP 5 -->
-          <div style="min-width:140px;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:12px;flex-shrink:0;">
-            <div style="width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;margin-bottom:8px;">5</div>
-            <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px;">解約・削除完了</div>
-            <div style="font-size:11px;color:var(--accent);line-height:1.5;">サブスク解約・SNS削除を実行</div>
+          <div style="display:flex;align-items:center;color:var(--text-muted);font-size:14px;margin-right:6px;flex-shrink:0;">→</div>
+          <div style="min-width:100px;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:10px;flex-shrink:0;text-align:center;">
+            <div style="width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;margin:0 auto 6px;">4</div>
+            <div style="font-size:10px;font-weight:600;color:var(--accent);margin-bottom:2px;">情報が開示</div>
+            <div style="font-size:9px;color:var(--accent);line-height:1.4;">解約・削除を実行</div>
           </div>
         </div>
       </div>
-      <div class="alert alert-warn" style="margin-top:12px;">
-        <svg viewBox="0 0 24 24" style="stroke:var(--warning);fill:none;stroke-width:2;"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-        <div><div style="font-size:13px;font-weight:600;color:var(--warning);">設定をお願いします</div><div style="font-size:12px;color:var(--warning);margin-top:2px;">閲覧者と承認者を登録しておくと、万が一の時に備えられます。</div></div>
-      </div>
       <div class="section-head"><h2>手続きする人</h2></div>
+      <div style="margin:0 16px 8px;font-size:12px;color:var(--text-muted);line-height:1.6;">亡くなった後にサブスク解約・SNS削除をする人。第一〜第三候補を設定できます。</div>
       <div id="viewers-list"><div class="loading">読み込み中...</div></div>
-      <div class="section-head"><h2>確認する人</h2></div>
-      <div id="approvers-list"><div class="loading">読み込み中...</div></div>
       <div class="section-head"><h2>SNSアカウント</h2></div>
       <div id="sns-list"><div class="loading">読み込み中...</div></div>
       <div class="add-btn" onclick="openModal('add-sns')">＋ SNSアカウントを追加する</div>
     </div>
-    <div id="panel-trustee" style="display:none;padding-top:12px;">
-      <!-- 承諾待ちバナー -->
-      <div id="trustee-pending-banner" style="display:none;padding:0 16px 4px;"></div>
-      <!-- 承諾済み一覧 -->
-      <div style="padding:0 20px 8px;"><h2 style="font-size:17px;font-weight:700;">任命されている人</h2></div>
-      <div id="trustee-cards"><div class="loading">読み込み中...</div></div>
-    </div>
 
+    <!-- 手続きする人タブ -->
+    <div id="panel-trustee" style="display:none;padding-top:14px;">
+      <div id="trustee-pending-banner" style="display:none;padding:0 16px 4px;"></div>
+      <div id="trustee-cards">
+        <div class="empty">
+          <div style="font-size:36px;margin-bottom:12px;">🔒</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">まだ任命されていません</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">誰かがあなたを「手続きする人」として<br>登録すると、ここに表示されます。</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 解錠済み -->
@@ -294,14 +240,10 @@ body { font-family: -apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif; bac
         <div class="info-row"><span class="info-label">メール</span><span class="info-value" id="settings-email">—</span></div>
       </div>
       <button class="btn btn-ghost" style="margin:0 16px;width:calc(100% - 32px);" onclick="doLogout()">ログアウト</button>
-      <div style="margin:24px 16px 0;">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:8px;">危険な操作</div>
-        <button onclick="confirmDelete()" style="width:100%;padding:13px;background:transparent;border:1.5px solid var(--danger);color:var(--danger);border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;">
-          アカウントを削除する
-        </button>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">
-          削除すると登録したサブスク・SNS・設定が全て消えます。
-        </div>
+      <div style="margin:20px 16px 0;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:8px;">危険な操作</div>
+        <button onclick="confirmDelete()" style="width:100%;padding:13px;background:transparent;border:1.5px solid var(--danger);color:var(--danger);border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;">アカウントを削除する</button>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">削除すると登録したサブスク・SNS・設定が全て消えます。</div>
       </div>
     </div>
   </div>
@@ -328,37 +270,30 @@ body { font-family: -apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif; bac
 
 <div class="toast" id="toast"></div>
 
-<!-- サービス追加モーダル -->
+<!-- サービス追加 -->
 <div class="modal-bg" id="modal-add-service">
   <div class="modal-box">
-    <div class="modal-head">
-      <h3>サービスを追加</h3>
-      <button class="modal-close" onclick="closeModal('add-service')">×</button>
-    </div>
-    <!-- サービス一覧ドロップダウン -->
+    <div class="modal-head"><h3>サービスを追加</h3><button class="modal-close" onclick="closeModal('add-service')">×</button></div>
     <div style="position:relative;margin-bottom:14px;">
       <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">サービス名</label>
       <input type="text" id="sub-name" placeholder="サービス名を入力または選択" autocomplete="off"
-        style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--bg);outline:none;"
+        style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;outline:none;"
         onfocus="showServiceDropdown()" oninput="filterServices(this.value)">
-      <div id="service-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:600;max-height:200px;overflow-y:auto;"></div>
+      <div id="service-dropdown"></div>
     </div>
     <div class="field"><label>メールアドレス</label><input type="email" id="sub-email" placeholder="例: taro@email.com"></div>
     <div class="field"><label>パスワード</label><input type="password" id="sub-password" placeholder="パスワードを入力"></div>
     <div class="field"><label>料金（円）</label><input type="text" inputmode="numeric" id="sub-price" placeholder="例: 990"></div>
     <div class="field"><label>請求サイクル</label><select id="sub-cycle"><option value="monthly">月額</option><option value="yearly">年額</option></select></div>
     <div class="field"><label>支払い方法</label><select id="sub-payment"><option>クレジットカード</option><option>キャリア決済（docomo）</option><option>キャリア決済（au）</option><option>キャリア決済（SoftBank）</option><option>Apple Pay</option><option>Google Pay</option><option>銀行引き落とし</option><option>その他</option></select></div>
-    <button class="btn btn-accent" onclick="addSubscription()" style="margin-top:4px;">追加する</button>
+    <button class="btn btn-accent" onclick="addSubscription()">追加する</button>
   </div>
 </div>
 
-<!-- SNS追加モーダル -->
+<!-- SNS追加 -->
 <div class="modal-bg" id="modal-add-sns">
   <div class="modal-box">
-    <div class="modal-head">
-      <h3>SNSアカウントを追加</h3>
-      <button class="modal-close" onclick="closeModal('add-sns')">×</button>
-    </div>
+    <div class="modal-head"><h3>SNSアカウントを追加</h3><button class="modal-close" onclick="closeModal('add-sns')">×</button></div>
     <div class="field"><label>プラットフォーム</label><select id="sns-platform"><option>X (Twitter)</option><option>Instagram</option><option>Facebook</option><option>TikTok</option><option>LinkedIn</option><option>その他</option></select></div>
     <div class="field"><label>ユーザー名</label><input type="text" id="sns-username" placeholder="例: @tanaka_taro"></div>
     <div class="field"><label>パスワード</label><input type="password" id="sns-password" placeholder="パスワードを入力"></div>
@@ -366,449 +301,332 @@ body { font-family: -apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif; bac
   </div>
 </div>
 
-<!-- 受任者追加モーダル -->
+<!-- 手続きする人追加 -->
 <div class="modal-bg" id="modal-add-trustee">
   <div class="modal-box">
-    <div class="modal-head">
-      <h3>信頼できる人を追加</h3>
-      <button class="modal-close" onclick="closeModal('add-trustee')">×</button>
-    </div>
-    <div class="field"><label>相手のメールアドレス（Nokoruに登録済みの人）</label><input type="email" id="trustee-email" placeholder="相手がNokoruに登録したメール"></div>
-    <div class="field"><label>役割</label><select id="trustee-role"><option value="viewer">手続きする人</option><option value="approver">確認する人</option></select></div>
+    <div class="modal-head"><h3>手続きする人を追加</h3><button class="modal-close" onclick="closeModal('add-trustee')">×</button></div>
+    <div class="field"><label>相手のメールアドレス</label><input type="email" id="trustee-email" placeholder="Nokoruに登録済みのメール"></div>
     <div style="background:var(--accent-light);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent);line-height:1.6;">相手がNokoruに登録していることが必要です。</div>
     <button class="btn btn-accent" onclick="addTrustee()">追加する</button>
   </div>
 </div>
 
+<!-- 解錠申請 STEP1 -->
+<div class="modal-bg" id="modal-unlock-step1">
+  <div class="modal-box">
+    <div class="modal-head"><h3>解錠を申請する</h3><button class="modal-close" onclick="closeModal('unlock-step1')">×</button></div>
+    <div id="unlock-target-name" style="background:var(--danger-light);border:1px solid #F5C6C2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--danger);font-weight:600;"></div>
+    <div class="field"><label>申請理由</label>
+      <select id="unlock-reason">
+        <option value="">選択してください</option>
+        <option value="death">🕊 本人が死亡したため</option>
+        <option value="test">🔧 動作確認（テスト）</option>
+      </select>
+    </div>
+    <div style="background:var(--warning-light);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--warning);line-height:1.6;">虚偽申請は運営が確認します。悪意ある申請はアカウント停止の対象です。</div>
+    <button class="btn btn-accent" onclick="unlockNext1()" style="margin-bottom:8px;">次へ →</button>
+    <button class="btn btn-ghost" onclick="closeModal('unlock-step1')">キャンセル</button>
+  </div>
+</div>
+
+<!-- 解錠申請 STEP2 -->
+<div class="modal-bg" id="modal-unlock-step2">
+  <div class="modal-box">
+    <div class="modal-head"><h3>死亡診断書を提出</h3><button class="modal-close" onclick="closeModal('unlock-step2')">×</button></div>
+    <div style="background:var(--warning-light);border:1px solid #F5CBA7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--warning);line-height:1.6;">📋 氏名・死亡日・発行機関が確認できる部分のみで構いません。確認後24時間以内に削除します。</div>
+    <div id="upload-area2" onclick="document.getElementById('file-input2').click()" style="border:2px dashed var(--border);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;margin-bottom:16px;">
+      <div style="font-size:32px;margin-bottom:8px;">📄</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">タップして写真を選択</div>
+      <div style="font-size:12px;color:var(--text-muted);">JPG・PNG・PDF 対応</div>
+      <input type="file" id="file-input2" accept="image/*,.pdf" style="display:none;" onchange="handleFile2(this)">
+    </div>
+    <div id="uploaded-file2" style="display:none;background:var(--success-light);border:1px solid var(--accent-mid);border-radius:8px;padding:12px;margin-bottom:16px;align-items:center;gap:10px;">
+      <span style="font-size:22px;">✅</span>
+      <span id="file-name2" style="flex:1;font-size:13px;font-weight:600;color:var(--success);"></span>
+      <span onclick="removeFile2()" style="font-size:12px;color:var(--danger);cursor:pointer;">削除</span>
+    </div>
+    <button class="btn btn-accent" onclick="unlockNext2()" style="margin-bottom:8px;">次へ →</button>
+    <button class="btn btn-ghost" onclick="closeModal('unlock-step2');openModal('unlock-step1')">← 戻る</button>
+  </div>
+</div>
+
+<!-- 解錠申請 STEP3 -->
+<div class="modal-bg" id="modal-unlock-step3">
+  <div class="modal-box">
+    <div class="modal-head"><h3>内容を確認</h3><button class="modal-close" onclick="closeModal('unlock-step3')">×</button></div>
+    <div class="card" style="margin:0 0 16px;">
+      <div class="info-row"><span class="info-label">対象者</span><span class="info-value" id="confirm-target">—</span></div>
+      <div class="info-row"><span class="info-label">申請理由</span><span class="info-value" id="confirm-reason">—</span></div>
+      <div class="info-row"><span class="info-label">死亡診断書</span><span class="info-value" id="confirm-file2">—</span></div>
+      <div class="info-row"><span class="info-label">審査</span><span class="info-value">運営が24時間以内に確認</span></div>
+    </div>
+    <div style="background:var(--warning-light);border:1px solid #F5CBA7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--warning);line-height:1.6;">申請後、運営が死亡診断書を確認します。確認でき次第、情報が開示されます。</div>
+    <button class="btn btn-danger" onclick="submitUnlock()" style="margin-bottom:8px;">申請を送信する</button>
+    <button class="btn btn-ghost" onclick="closeModal('unlock-step3');openModal('unlock-step2')">← 戻る</button>
+  </div>
+</div>
+
+<!-- 申請完了 -->
+<div class="modal-bg" id="modal-unlock-done">
+  <div class="modal-box" style="text-align:center;padding:32px 20px 40px;">
+    <div style="font-size:48px;margin-bottom:16px;">📬</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px;">申請を受け付けました</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:24px;">運営が死亡診断書を確認後、<br>情報が開示されます。<br>通常24時間以内に処理されます。</div>
+    <button class="btn btn-ghost" onclick="closeModal('unlock-done')" style="max-width:180px;margin:0 auto;">閉じる</button>
+  </div>
+</div>
+
 <script>
-// ════ 暗号化ユーティリティ ════
-function getEncKey(user) {
-  // ユーザーIDとメールを組み合わせてキーを生成
-  return CryptoJS.SHA256(user.id + user.email).toString();
-}
+const SUPABASE_URL='https://lusbgrrjoijwktlbyzpy.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1c2JncnJqb2lqd2t0bGJ5enB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzAwOTYsImV4cCI6MjA5ODEwNjA5Nn0.clS010P_sdRtnHTH1_cJatqtdlQ_6pfrUiHAefdJkd4';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,storage:window.localStorage}});
+let currentUser=null,isSetup=false,currentUnlockTarget=null,decryptedSubs=[];
 
-function encryptText(text, key) {
-  if (!text) return '';
-  return CryptoJS.AES.encrypt(text, key).toString();
-}
+function getEncKey(u){return CryptoJS.SHA256(u.id+u.email).toString();}
+function encryptText(t,k){return t?CryptoJS.AES.encrypt(t,k).toString():'';}
+function decryptText(c,k){if(!c)return '';try{return CryptoJS.AES.decrypt(c,k).toString(CryptoJS.enc.Utf8)||c;}catch(e){return c;}}
 
-function decryptText(ciphertext, key) {
-  if (!ciphertext) return '';
-  try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, key);
-    return bytes.toString(CryptoJS.enc.Utf8) || ciphertext;
-  } catch(e) {
-    return ciphertext; // 復号できない場合はそのまま返す
-  }
-}
-
-const SUPABASE_URL = 'https://lusbgrrjoijwktlbyzpy.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1c2JncnJqb2lqd2t0bGJ5enB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzAwOTYsImV4cCI6MjA5ODEwNjA5Nn0.clS010P_sdRtnHTH1_cJatqtdlQ_6pfrUiHAefdJkd4';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storage: window.localStorage,
-  }
+window.addEventListener('load',async()=>{
+  try{const{data:{session}}=await sb.auth.getSession();if(session?.user)await setupUser(session.user);}catch(e){console.error(e);}
 });
-let currentUser = null;
-
-let isSetup = false;
-
-async function setupUser(user) {
-  if (isSetup) return;
-  isSetup = true;
-  currentUser = user;
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  const initial = (user.user_metadata?.name || 'U').charAt(0);
-  document.querySelectorAll('.avatar').forEach(el => el.textContent = initial);
-  document.getElementById('settings-name').textContent = user.user_metadata?.name || '—';
-  document.getElementById('settings-email').textContent = user.email || '—';
-  try {
-    await Promise.all([
-      loadSubscriptions(),
-      loadTrustees(),
-      loadSns(),
-    ]);
-  } catch(e) {
-    console.error('読み込みエラー:', e);
-    showToast('データの読み込みに失敗しました。リロードしてください。');
-  }
-}
-
-// ページ読み込み時にセッション確認（最優先）
-window.addEventListener('load', async () => {
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session && session.user) {
-      await setupUser(session.user);
-    }
-  } catch(e) {
-    console.error('セッション確認エラー:', e);
-  }
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'&&session&&!isSetup)await setupUser(session.user);
+  else if(event==='SIGNED_OUT'){isSetup=false;currentUser=null;document.getElementById('auth-screen').style.display='flex';document.getElementById('app').style.display='none';}
 });
 
-// 認証状態の監視（新規ログイン時のみ）
-sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session && !isSetup) {
-    await setupUser(session.user);
-  } else if (event === 'SIGNED_OUT') {
-    isSetup = false;
-    currentUser = null;
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-  }
-});
-
-function switchAuthTab(tab) {
-  document.getElementById('auth-login').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('auth-signup').style.display = tab === 'signup' ? 'block' : 'none';
-  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
-  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
-  document.getElementById('auth-error').style.display = 'none';
+async function setupUser(user){
+  if(isSetup)return;isSetup=true;currentUser=user;
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  const init=(user.user_metadata?.name||'U').charAt(0);
+  document.querySelectorAll('.avatar').forEach(el=>el.textContent=init);
+  document.getElementById('settings-name').textContent=user.user_metadata?.name||'—';
+  document.getElementById('settings-email').textContent=user.email||'—';
+  try{await Promise.all([loadSubscriptions(),loadTrustees(),loadSns()]);}catch(e){showToast('データの読み込みに失敗しました');}
 }
 
-async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  if (!email || !password) { showAuthError('メールとパスワードを入力してください'); return; }
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) showAuthError('ログインに失敗しました: ' + error.message);
+function switchAuthTab(tab){
+  document.getElementById('auth-login').style.display=tab==='login'?'block':'none';
+  document.getElementById('auth-signup').style.display=tab==='signup'?'block':'none';
+  document.getElementById('tab-login').classList.toggle('active',tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active',tab==='signup');
+  document.getElementById('auth-error').style.display='none';
 }
-
-async function doSignup() {
-  const name = document.getElementById('signup-name').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value;
-  if (!name || !email || !password) { showAuthError('全て入力してください'); return; }
-  const { error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
-  if (error) showAuthError(error.message);
-  else showAuthError('登録完了！ログインしてください。');
+async function doLogin(){
+  const e=document.getElementById('login-email').value.trim();
+  const p=document.getElementById('login-password').value;
+  if(!e||!p){showAuthError('メールとパスワードを入力してください');return;}
+  const{error}=await sb.auth.signInWithPassword({email:e,password:p});
+  if(error)showAuthError('ログインに失敗しました: '+error.message);
 }
-
-async function doLogout() {
-  isSetup = false;
-  await sb.auth.signOut();
+async function doSignup(){
+  const n=document.getElementById('signup-name').value.trim();
+  const e=document.getElementById('signup-email').value.trim();
+  const p=document.getElementById('signup-password').value;
+  if(!n||!e||!p){showAuthError('全て入力してください');return;}
+  const{error}=await sb.auth.signUp({email:e,password:p,options:{data:{name:n}}});
+  if(error)showAuthError(error.message);else showAuthError('登録完了！ログインしてください。');
 }
-
-async function confirmDelete() {
-  const confirmed = window.confirm('本当にアカウントを削除しますか？\nサブスク・SNS・設定が全て削除されます。\nこの操作は取り消せません。');
-  if (!confirmed) return;
-
-  try {
-    // 自分のデータを削除
-    const uid = currentUser.id;
-    await sb.from('trustees').delete().eq('owner_id', uid);
-    await sb.from('trustees').delete().eq('trustee_user_id', uid);
-    await sb.from('subscriptions').delete().eq('user_id', uid);
-    await sb.from('sns_accounts').delete().eq('user_id', uid);
-
-    // Supabaseのユーザー削除はadmin権限が必要なのでサインアウトのみ
-    showToast('データを削除しました。アカウントの完全削除は管理者が行います。');
-    isSetup = false;
-    setTimeout(async () => {
-      await sb.auth.signOut();
-    }, 2000);
-  } catch(e) {
-    showToast('削除エラー: ' + e.message);
-  }
+async function doLogout(){isSetup=false;await sb.auth.signOut();}
+async function confirmDelete(){
+  if(!window.confirm('本当にアカウントを削除しますか？\nサブスク・SNS・設定が全て削除されます。'))return;
+  const uid=currentUser.id;
+  await Promise.all([sb.from('trustees').delete().eq('owner_id',uid),sb.from('trustees').delete().eq('trustee_user_id',uid),sb.from('subscriptions').delete().eq('user_id',uid),sb.from('sns_accounts').delete().eq('user_id',uid)]);
+  showToast('データを削除しました');isSetup=false;
+  setTimeout(()=>sb.auth.signOut(),1500);
 }
+function showAuthError(msg){const el=document.getElementById('auth-error');el.textContent=msg;el.style.display='block';}
 
-function showAuthError(msg) {
-  const el = document.getElementById('auth-error');
-  el.textContent = msg; el.style.display = 'block';
-}
-
-// ナビ
-const screens = ['home','trust','unlocked','settings'];
-function goScreen(name) {
-  screens.forEach(s => {
-    document.getElementById('screen-' + s).classList.toggle('active', s === name);
-    document.getElementById('header-' + s).style.display = s === name ? 'block' : 'none';
-    document.getElementById('nav-' + s).classList.toggle('active', s === name);
+const screens=['home','trust','unlocked','settings'];
+function goScreen(name){
+  screens.forEach(s=>{
+    document.getElementById('screen-'+s).classList.toggle('active',s===name);
+    document.getElementById('header-'+s).style.display=s===name?'block':'none';
+    document.getElementById('nav-'+s).classList.toggle('active',s===name);
   });
-  if (name === 'unlocked') renderUnlockedSubs();
+  if(name==='unlocked')renderUnlockedSubs();
 }
-
-function renderUnlockedSubs() {
-  if (!decryptedSubs.length) {
-    document.getElementById('unlocked-subs').innerHTML = '<div class="empty">サブスクがまだ登録されていません</div>';
-    return;
-  }
-  const colors = ['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC','#00B4D8'];
-  document.getElementById('unlocked-subs').innerHTML = decryptedSubs.map((s, i) => `
-    <div class="card" style="margin-top:${i===0?'12px':'0'};">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:9px;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;">${s.name.charAt(0)}</div>
-          <div><div style="font-size:15px;font-weight:700;">${s.name}</div><div style="font-size:12px;color:var(--text-muted);">¥${s.price.toLocaleString()}/${s.cycle==='monthly'?'月':'年'}</div></div>
-        </div>
-        <span class="badge badge-ok">有効</span>
-      </div>
-      <div class="info-row"><span class="info-label">メール</span><span class="info-value" style="font-family:monospace;font-size:12px;">${s.email_decrypted||'—'}</span></div>
-      <div class="info-row">
-        <span class="info-label">パスワード</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="pw-value" id="pw-${s.id}">${s.password_decrypted||'—'}</span>
-          <span style="font-size:12px;color:var(--accent);cursor:pointer;" onclick="togglePw('pw-${s.id}',this)">表示</span>
-        </div>
-      </div>
-      <div class="info-row"><span class="info-label">支払い方法</span><span class="info-value">${s.payment_method||'—'}</span></div>
-    </div>`).join('');
-}
-
-function switchInnerTab(tab) {
-  ['own','trustee','approve'].forEach(t => {
-    document.getElementById('panel-' + t).style.display = t === tab ? 'block' : 'none';
-    document.getElementById('itab-' + t).classList.toggle('active', t === tab);
+function switchInnerTab(tab){
+  ['own','trustee'].forEach(t=>{
+    document.getElementById('panel-'+t).style.display=t===tab?'block':'none';
+    document.getElementById('itab-'+t).classList.toggle('active',t===tab);
   });
 }
-
-function switchUtab(tab, el) {
-  document.querySelectorAll('.utab').forEach(t => t.classList.remove('active'));
+function switchUtab(tab,el){
+  document.querySelectorAll('.utab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('unlocked-subs').style.display = tab === 'subs' ? 'block' : 'none';
-  document.getElementById('unlocked-sns').style.display = tab === 'sns' ? 'block' : 'none';
+  document.getElementById('unlocked-subs').style.display=tab==='subs'?'block':'none';
+  document.getElementById('unlocked-sns').style.display=tab==='sns'?'block':'none';
 }
 
-// モーダル
-function openModal(id) {
-  document.getElementById('modal-' + id).classList.add('open');
-}
-function closeModal(id) {
-  document.getElementById('modal-' + id).classList.remove('open');
-}
-// 背景クリックで閉じる
-document.addEventListener('click', function(e) {
-  ['add-service','add-sns','add-trustee'].forEach(id => {
-    const modal = document.getElementById('modal-' + id);
-    if (modal && modal.classList.contains('open') && e.target === modal) {
-      modal.classList.remove('open');
-    }
+function openModal(id){document.getElementById('modal-'+id).classList.add('open');}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('open');}
+document.addEventListener('click',e=>{
+  ['add-service','add-sns','add-trustee','unlock-step1','unlock-step2','unlock-step3','unlock-done'].forEach(id=>{
+    const m=document.getElementById('modal-'+id);
+    if(m&&m.classList.contains('open')&&e.target===m)m.classList.remove('open');
   });
-  // ドロップダウンを閉じる
-  const dd = document.getElementById('service-dropdown');
-  const input = document.getElementById('sub-name');
-  if (dd && !dd.contains(e.target) && e.target !== input) {
-    dd.style.display = 'none';
-  }
+  const dd=document.getElementById('service-dropdown');
+  const inp=document.getElementById('sub-name');
+  if(dd&&!dd.contains(e.target)&&e.target!==inp)dd.style.display='none';
 });
 
-// トースト
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
-// サービス一覧
-const SERVICE_LIST = [
-  { name:'Netflix', cycle:'monthly', price:1490, color:'#E50914', icon:'N' },
-  { name:'Amazon Prime', cycle:'monthly', price:600, color:'#FF9900', icon:'A' },
-  { name:'Spotify', cycle:'monthly', price:980, color:'#1DB954', icon:'S' },
-  { name:'Disney+', cycle:'monthly', price:990, color:'#113CCF', icon:'D' },
-  { name:'YouTube Premium', cycle:'monthly', price:1280, color:'#FF0000', icon:'Y' },
-  { name:'Apple Music', cycle:'monthly', price:1080, color:'#FC3C44', icon:'♪' },
-  { name:'LINE MUSIC', cycle:'monthly', price:980, color:'#06C755', icon:'L' },
-  { name:'iCloud+', cycle:'monthly', price:130, color:'#3478F6', icon:'☁' },
-  { name:'Microsoft 365', cycle:'yearly', price:12984, color:'#0078D4', icon:'M' },
-  { name:'ChatGPT Plus', cycle:'monthly', price:3000, color:'#10A37F', icon:'G' },
-  { name:'Adobe CC', cycle:'monthly', price:6480, color:'#FF0000', icon:'A' },
-  { name:'Notion', cycle:'monthly', price:1650, color:'#000000', icon:'N' },
-  { name:'hulu', cycle:'monthly', price:1026, color:'#1CE783', icon:'h' },
-  { name:'U-NEXT', cycle:'monthly', price:2189, color:'#000000', icon:'U' },
-  { name:'dアニメストア', cycle:'monthly', price:550, color:'#E60012', icon:'d' },
-  { name:'Nintendo Switch Online', cycle:'yearly', price:2400, color:'#E60012', icon:'N' },
-  { name:'Xbox Game Pass', cycle:'monthly', price:850, color:'#107C10', icon:'X' },
+const SERVICE_LIST=[
+  {name:'Netflix',cycle:'monthly',price:1490,color:'#E50914',icon:'N'},
+  {name:'Amazon Prime',cycle:'monthly',price:600,color:'#FF9900',icon:'A'},
+  {name:'Spotify',cycle:'monthly',price:980,color:'#1DB954',icon:'S'},
+  {name:'Disney+',cycle:'monthly',price:990,color:'#113CCF',icon:'D'},
+  {name:'YouTube Premium',cycle:'monthly',price:1280,color:'#FF0000',icon:'Y'},
+  {name:'Apple Music',cycle:'monthly',price:1080,color:'#FC3C44',icon:'♪'},
+  {name:'LINE MUSIC',cycle:'monthly',price:980,color:'#06C755',icon:'L'},
+  {name:'iCloud+',cycle:'monthly',price:130,color:'#3478F6',icon:'☁'},
+  {name:'Microsoft 365',cycle:'yearly',price:12984,color:'#0078D4',icon:'M'},
+  {name:'ChatGPT Plus',cycle:'monthly',price:3000,color:'#10A37F',icon:'G'},
+  {name:'hulu',cycle:'monthly',price:1026,color:'#1CE783',icon:'h'},
+  {name:'U-NEXT',cycle:'monthly',price:2189,color:'#000000',icon:'U'},
+  {name:'dアニメストア',cycle:'monthly',price:550,color:'#E60012',icon:'d'},
+  {name:'Nintendo Switch Online',cycle:'yearly',price:2400,color:'#E60012',icon:'N'},
 ];
-
-function renderDropdown(list) {
-  const dd = document.getElementById('service-dropdown');
-  if (!list.length) { dd.style.display = 'none'; return; }
-  dd.innerHTML = list.map(s =>
-    `<div onmousedown="pickService('${s.name}','${s.cycle}',${s.price})" style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;">
-      <div style="width:28px;height:28px;background:${s.color};border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0;">${s.icon}</div>
-      <span style="font-size:13px;font-weight:500;">${s.name}</span>
-    </div>`
-  ).join('');
-  dd.style.display = 'block';
+function renderDropdown(list){
+  const dd=document.getElementById('service-dropdown');
+  if(!list.length){dd.style.display='none';return;}
+  dd.innerHTML=list.map(s=>`<div onmousedown="pickService('${s.name}','${s.cycle}',${s.price})" style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;background:white;"><div style="width:28px;height:28px;background:${s.color};border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0;">${s.icon}</div><span style="font-size:13px;font-weight:500;">${s.name}</span></div>`).join('');
+  dd.style.display='block';
+}
+function showServiceDropdown(){renderDropdown(SERVICE_LIST);}
+function filterServices(val){renderDropdown(val?SERVICE_LIST.filter(s=>s.name.toLowerCase().includes(val.toLowerCase())):SERVICE_LIST);}
+function pickService(name,cycle,price){
+  document.getElementById('sub-name').value=name;
+  document.getElementById('sub-cycle').value=cycle;
+  document.getElementById('sub-price').value=price;
+  document.getElementById('service-dropdown').style.display='none';
 }
 
-function showServiceDropdown() { renderDropdown(SERVICE_LIST); }
-
-function filterServices(val) {
-  if (!val) { renderDropdown(SERVICE_LIST); return; }
-  renderDropdown(SERVICE_LIST.filter(s => s.name.toLowerCase().includes(val.toLowerCase())));
+async function loadSubscriptions(){
+  const{data,error}=await sb.from('subscriptions').select('*').order('created_at');
+  if(error||!data){document.getElementById('subs-list').innerHTML='<div class="empty">読み込みエラー</div>';return;}
+  const key=getEncKey(currentUser);
+  decryptedSubs=data.map(s=>({...s,email_dec:decryptText(s.email,key),pw_dec:decryptText(s.password_encrypted,key)}));
+  let monthly=0;data.forEach(s=>{monthly+=s.cycle==='monthly'?s.price:Math.round(s.price/12);});
+  document.getElementById('total-monthly').textContent='¥'+monthly.toLocaleString();
+  document.getElementById('total-yearly').textContent='年間: ¥'+(monthly*12).toLocaleString();
+  document.getElementById('total-count').textContent=data.length;
+  if(!data.length){document.getElementById('subs-list').innerHTML='<div class="empty">サービスがまだありません</div>';return;}
+  const colors=['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC'];
+  document.getElementById('subs-list').innerHTML='<div class="card" style="padding:4px 16px;">'+data.map((s,i)=>`<div class="sub-item"><div class="sub-icon" style="background:${colors[i%colors.length]};">${s.name.charAt(0)}</div><div class="sub-info"><div class="sub-name">${s.name}</div><div class="sub-date">${s.payment_method||''}</div></div><div class="sub-right"><div class="sub-price">¥${s.price.toLocaleString()}</div><div class="sub-cycle">/${s.cycle==='monthly'?'月':'年'}</div><span class="badge badge-ok">有効</span></div></div>`).join('')+'</div>';
 }
-
-function pickService(name, cycle, price) {
-  document.getElementById('sub-name').value = name;
-  document.getElementById('sub-cycle').value = cycle;
-  document.getElementById('sub-price').value = price;
-  document.getElementById('service-dropdown').style.display = 'none';
-}
-
-// サブスク
-let decryptedSubs = []; // 復号済みデータをキャッシュ
-
-async function loadSubscriptions() {
-  const { data, error } = await sb.from('subscriptions').select('*').order('created_at');
-  if (error || !data) { document.getElementById('subs-list').innerHTML = '<div class="empty">読み込みエラー</div>'; return; }
-  // 復号してキャッシュ
-  const key = getEncKey(currentUser);
-  decryptedSubs = data.map(s => ({
-    ...s,
-    email_decrypted: decryptText(s.email, key),
-    password_decrypted: decryptText(s.password_encrypted, key),
-  }));
-  let monthly = 0;
-  data.forEach(s => { monthly += s.cycle === 'monthly' ? s.price : Math.round(s.price / 12); });
-  document.getElementById('total-monthly').textContent = '¥' + monthly.toLocaleString();
-  document.getElementById('total-yearly').textContent = '年間: ¥' + (monthly * 12).toLocaleString();
-  document.getElementById('total-count').textContent = data.length;
-  if (!data.length) { document.getElementById('subs-list').innerHTML = '<div class="empty">サービスがまだありません</div>'; return; }
-  const colors = ['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC','#00B4D8'];
-  document.getElementById('subs-list').innerHTML = '<div class="card" style="padding:4px 16px;">' +
-    data.map((s, i) => `<div class="sub-item">
-      <div class="sub-icon" style="background:${colors[i % colors.length]};">${s.name.charAt(0)}</div>
-      <div class="sub-info"><div class="sub-name">${s.name}</div><div class="sub-date">${s.payment_method || ''}</div></div>
-      <div class="sub-right"><div class="sub-price">¥${s.price.toLocaleString()}</div><div class="sub-cycle">/${s.cycle === 'monthly' ? '月' : '年'}</div><span class="badge badge-ok">有効</span></div>
-    </div>`).join('') + '</div>';
-}
-
-async function addSubscription() {
-  const name = document.getElementById('sub-name').value.trim();
-  const price = parseInt(document.getElementById('sub-price').value);
-  if (!name || !price) { showToast('サービス名と料金は必須です'); return; }
-  const key = getEncKey(currentUser);
-  const rawEmail = document.getElementById('sub-email').value;
-  const rawPassword = document.getElementById('sub-password').value;
-  const { error } = await sb.from('subscriptions').insert({
-    user_id: currentUser.id, name,
-    email: encryptText(rawEmail, key),
-    password_encrypted: encryptText(rawPassword, key),
-    price, cycle: document.getElementById('sub-cycle').value,
-    payment_method: document.getElementById('sub-payment').value,
-  });
-  if (error) { showToast('エラー: ' + error.message); return; }
+async function addSubscription(){
+  const name=document.getElementById('sub-name').value.trim();
+  const price=parseInt(document.getElementById('sub-price').value);
+  if(!name||!price){showToast('サービス名と料金は必須です');return;}
+  const key=getEncKey(currentUser);
+  const{error}=await sb.from('subscriptions').insert({user_id:currentUser.id,name,email:encryptText(document.getElementById('sub-email').value,key),password_encrypted:encryptText(document.getElementById('sub-password').value,key),price,cycle:document.getElementById('sub-cycle').value,payment_method:document.getElementById('sub-payment').value});
+  if(error){showToast('エラー: '+error.message);return;}
   closeModal('add-service');
-  showToast('追加しました！');
-  // フォームリセット
-  ['sub-name','sub-email','sub-password','sub-price'].forEach(id => document.getElementById(id).value = '');
-  await loadSubscriptions();
+  ['sub-name','sub-email','sub-password','sub-price'].forEach(id=>document.getElementById(id).value='');
+  showToast('追加しました！');await loadSubscriptions();
 }
 
-// SNS
-async function loadSns() {
-  const { data } = await sb.from('sns_accounts').select('*').order('created_at');
-  if (!data || !data.length) { document.getElementById('sns-list').innerHTML = '<div class="empty" style="padding:16px 0;">SNSアカウントがまだありません</div>'; return; }
-  document.getElementById('sns-list').innerHTML = '<div class="card" style="padding:4px 16px;">' +
-    data.map(s => `<div class="sub-item"><div class="sub-info"><div class="sub-name">${s.platform}</div><div class="sub-date">${s.username || ''}</div></div><span class="badge badge-ok">対象</span></div>`).join('') + '</div>';
+async function loadSns(){
+  const{data}=await sb.from('sns_accounts').select('*').order('created_at');
+  document.getElementById('sns-list').innerHTML=(!data||!data.length)
+    ?'<div class="empty" style="padding:16px 0;">SNSアカウントがまだありません</div>'
+    :'<div class="card" style="padding:4px 16px;">'+data.map(s=>`<div class="sub-item"><div class="sub-info"><div class="sub-name">${s.platform}</div><div class="sub-date">${s.username||''}</div></div><span class="badge badge-ok">対象</span></div>`).join('')+'</div>';
+}
+async function addSns(){
+  const key=getEncKey(currentUser);
+  const{error}=await sb.from('sns_accounts').insert({user_id:currentUser.id,platform:document.getElementById('sns-platform').value,username:document.getElementById('sns-username').value,password_encrypted:encryptText(document.getElementById('sns-password').value,key),should_delete:true});
+  if(error){showToast('エラー: '+error.message);return;}
+  closeModal('add-sns');showToast('追加しました！');await loadSns();
 }
 
-async function addSns() {
-  const key = getEncKey(currentUser);
-  const { error } = await sb.from('sns_accounts').insert({
-    user_id: currentUser.id,
-    platform: document.getElementById('sns-platform').value,
-    username: document.getElementById('sns-username').value,
-    password_encrypted: encryptText(document.getElementById('sns-password').value, key),
-    should_delete: true,
-  });
-  if (error) { showToast('エラー: ' + error.message); return; }
-  closeModal('add-sns');
-  showToast('追加しました！');
-  await loadSns();
-}
+async function loadTrustees(){
+  let myTrustees=[],asTrusteeData=[];
+  try{const{data,error}=await sb.from('trustees').select('id,role,accepted,owner_id,trustee_user_id,trustee_name:trustee_user_id(name)').eq('owner_id',currentUser.id);if(!error&&data)myTrustees=data;}catch(e){}
+  try{const{data,error}=await sb.from('trustees').select('id,role,accepted,owner_id,trustee_user_id').eq('trustee_user_id',currentUser.id);if(!error&&data)asTrusteeData=data;}catch(e){}
 
-// 受任者
-async function loadTrustees() {
-  const { data: myTrustees } = await sb.from('trustees')
-    .select('*, trustee:profiles!trustees_trustee_user_id_fkey(name)')
-    .eq('owner_id', currentUser.id);
-  const viewers = (myTrustees || []).filter(t => t.role === 'viewer');
-  const approvers = (myTrustees || []).filter(t => t.role === 'approver');
-
-  document.getElementById('viewers-list').innerHTML = `<div class="role-card">
+  const viewers=myTrustees.filter(t=>t.role==='viewer');
+  document.getElementById('viewers-list').innerHTML=`<div class="role-card">
     <div class="role-card-head">
       <div class="role-icon" style="background:var(--accent-light);"><svg style="stroke:var(--accent);" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-      <div><div style="font-size:13px;font-weight:600;">手続きする人</div></div>
+      <div><div style="font-size:13px;font-weight:600;">手続きする人</div><div style="font-size:11px;color:var(--text-muted);">死後にサブスク解約・SNS削除をする</div></div>
     </div>
-    ${viewers.map((v, i) => `<div class="person-row"><div class="p-avatar" style="background:var(--accent-light);color:var(--accent);">${(v.trustee?.name||'?').charAt(0)}</div><div style="flex:1;"><div style="font-size:14px;font-weight:500;">${v.trustee?.name||'—'}</div><div style="font-size:12px;color:var(--text-muted);">第${i+1}候補</div></div><span class="badge badge-ok">設定済み</span></div>`).join('')}
-    <div class="add-person" onclick="openTrusteeModal('viewer')"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>手続きする人を追加する</div>
+    ${viewers.length===0?'<div style="padding:12px 16px;font-size:13px;color:var(--text-muted);">まだ登録されていません</div>':viewers.map((v,i)=>`<div class="person-row"><div class="p-avatar" style="background:var(--accent-light);color:var(--accent);">${(v.trustee_name?.name||'?').charAt(0)}</div><div style="flex:1;"><div style="font-size:14px;font-weight:600;">${v.trustee_name?.name||'—'}</div><div style="font-size:12px;color:var(--text-muted);">第${i+1}候補</div></div><span class="badge badge-ok">設定済み</span></div>`).join('')}
+    <div class="add-person" onclick="openTrusteeModal()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>手続きする人を追加する</div>
   </div>`;
 
-  document.getElementById('approvers-list').innerHTML = `<div class="role-card">
-    <div class="role-card-head">
-      <div class="role-icon" style="background:var(--warning-light);"><svg style="stroke:var(--warning);" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
-      <div><div style="font-size:13px;font-weight:600;">確認する人</div></div>
-    </div>
-    ${approvers.map(a => `<div class="person-row"><div class="p-avatar" style="background:var(--warning-light);color:var(--warning);">${(a.trustee?.name||'?').charAt(0)}</div><div style="flex:1;"><div style="font-size:14px;font-weight:500;">${a.trustee?.name||'—'}</div></div><span class="badge badge-ok">設定済み</span></div>`).join('')}
-    <div class="add-person" onclick="openTrusteeModal('approver')"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>確認する人を追加する</div>
-  </div>`;
-
-  const { data: asTrustee } = await sb.from('trustees')
-    .select('*, owner:profiles!trustees_owner_id_fkey(name)')
-    .eq('trustee_user_id', currentUser.id);
-  document.getElementById('trustee-cards').innerHTML = (!asTrustee || !asTrustee.length)
-    ? '<div class="empty">手続き・確認する人登録されている人はいません</div>'
-    : asTrustee.map(t => `<div class="person-card">
-        <div class="person-card-head">
-          <div class="person-avatar" style="background:var(--accent-light);color:var(--accent);">${(t.owner_name?.name||'?').charAt(0)}</div>
-          <div style="flex:1;"><div style="font-size:16px;font-weight:700;">${t.owner_name?.name||'—'}</div></div>
-          <span class="badge badge-ok">${t.role === 'viewer' ? '閲覧者' : '承認者'}</span>
-        </div>
-      </div>`).join('');
-}
-
-function openTrusteeModal(role) {
-  document.getElementById('trustee-role').value = role;
-  openModal('add-trustee');
-}
-
-async function addTrustee() {
-  const email = document.getElementById('trustee-email').value.trim();
-  const role = document.getElementById('trustee-role').value;
-  if (!email) { showToast('メールアドレスを入力してください'); return; }
-  if (email === currentUser.email) { showToast('自分自身は登録できません'); return; }
-
-  // メールアドレスからプロフィールを検索
-  const { data, error } = await sb.rpc('get_profile_by_email', { email_input: email });
-  if (error || !data || data.length === 0) {
-    showToast('このメールアドレスのユーザーが見つかりません');
+  if(asTrusteeData.length===0){
+    document.getElementById('trustee-cards').innerHTML='<div class="empty"><div style="font-size:36px;margin-bottom:12px;">🔒</div><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">まだ任命されていません</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">誰かがあなたを「手続きする人」として<br>登録すると、ここに表示されます。</div></div>';
     return;
   }
-  const trusteeProfile = data[0];
+  const ownerIds=asTrusteeData.map(t=>t.owner_id);
+  let ownerNames={};
+  try{const{data:op}=await sb.from('profiles').select('id,name').in('id',ownerIds);(op||[]).forEach(p=>{ownerNames[p.id]=p.name;});}catch(e){}
+  document.getElementById('trustee-cards').innerHTML=asTrusteeData.map(t=>{
+    const name=ownerNames[t.owner_id]||'—';
+    return `<div class="trustee-card"><div class="trustee-card-head"><div class="trustee-avatar" style="background:var(--accent-light);color:var(--accent);">${name.charAt(0)}</div><div style="flex:1;"><div style="font-size:16px;font-weight:700;">${name}</div><div style="font-size:12px;color:var(--text-muted);">あなたは手続きする人として登録されています</div></div></div><div style="padding:0 16px 14px;"><button onclick="startUnlockRequest('${t.owner_id}','${name}')" style="width:100%;padding:12px;background:var(--danger);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;">${name}さんの解錠を申請する</button></div></div>`;
+  }).join('');
+}
 
-  // 受任者として登録
-  const { error: insertError } = await sb.from('trustees').insert({
-    owner_id: currentUser.id,
-    trustee_user_id: trusteeProfile.id,
-    role: role,
-    priority: 1,
-    accepted: true,
-  });
+function openTrusteeModal(){document.getElementById('trustee-email').value='';openModal('add-trustee');}
+async function addTrustee(){
+  const email=document.getElementById('trustee-email').value.trim();
+  if(!email){showToast('メールアドレスを入力してください');return;}
+  if(email===currentUser.email){showToast('自分自身は登録できません');return;}
+  const{data,error}=await sb.rpc('get_profile_by_email',{email_input:email});
+  if(error||!data||data.length===0){showToast('このメールのユーザーが見つかりません');return;}
+  const{error:ie}=await sb.from('trustees').insert({owner_id:currentUser.id,trustee_user_id:data[0].id,role:'viewer',priority:1,accepted:true});
+  if(ie){showToast(ie.code==='23505'?'この方はすでに登録されています':'エラー: '+ie.message);return;}
+  closeModal('add-trustee');showToast(data[0].name+'さんを追加しました！');await loadTrustees();
+}
 
-  if (insertError) {
-    if (insertError.code === '23505') {
-      showToast('この方はすでに登録されています');
-    } else {
-      showToast('エラー: ' + insertError.message);
-    }
-    return;
+function startUnlockRequest(ownerId,ownerName){
+  currentUnlockTarget={id:ownerId,name:ownerName};
+  document.getElementById('unlock-target-name').textContent=ownerName+'さんの解錠を申請します';
+  document.getElementById('unlock-reason').value='';
+  removeFile2();openModal('unlock-step1');
+}
+function unlockNext1(){
+  const reason=document.getElementById('unlock-reason').value;
+  if(!reason){showToast('申請理由を選択してください');return;}
+  closeModal('unlock-step1');
+  if(reason==='test'){
+    document.getElementById('confirm-target').textContent=currentUnlockTarget.name;
+    document.getElementById('confirm-reason').textContent='🔧 動作確認（テスト）';
+    document.getElementById('confirm-file2').textContent='不要（テスト申請）';
+    openModal('unlock-step3');
+  }else{openModal('unlock-step2');}
+}
+function unlockNext2(){
+  if(document.getElementById('uploaded-file2').style.display!=='flex'){showToast('死亡診断書をアップロードしてください');return;}
+  document.getElementById('confirm-target').textContent=currentUnlockTarget.name;
+  document.getElementById('confirm-reason').textContent='🕊 本人が死亡したため';
+  document.getElementById('confirm-file2').textContent='✅ '+document.getElementById('file-name2').textContent;
+  closeModal('unlock-step2');openModal('unlock-step3');
+}
+async function submitUnlock(){closeModal('unlock-step3');showToast('申請を送信しました。運営が確認します。');openModal('unlock-done');}
+function handleFile2(input){
+  if(input.files&&input.files[0]){
+    document.getElementById('file-name2').textContent=input.files[0].name;
+    document.getElementById('uploaded-file2').style.display='flex';
+    document.getElementById('upload-area2').style.display='none';
   }
-
-  closeModal('add-trustee');
-  document.getElementById('trustee-email').value = '';
-  showToast(`${trusteeProfile.name}さんを追加しました！`);
-  await loadTrustees();
+}
+function removeFile2(){
+  document.getElementById('uploaded-file2').style.display='none';
+  document.getElementById('upload-area2').style.display='block';
+  const fi=document.getElementById('file-input2');if(fi)fi.value='';
 }
 
-async function doCheckin() {
-  showToast('✅ チェックイン完了！受任者に通知されました');
+function renderUnlockedSubs(){
+  if(!decryptedSubs.length){document.getElementById('unlocked-subs').innerHTML='<div class="empty">サブスクがまだ登録されていません</div>';return;}
+  const colors=['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC'];
+  document.getElementById('unlocked-subs').innerHTML=decryptedSubs.map((s,i)=>`<div class="card" style="margin-top:${i===0?'12px':'0'};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="width:36px;height:36px;border-radius:9px;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">${s.name.charAt(0)}</div><div><div style="font-size:15px;font-weight:700;">${s.name}</div><div style="font-size:12px;color:var(--text-muted);">¥${s.price.toLocaleString()}/${s.cycle==='monthly'?'月':'年'}</div></div></div><div class="info-row"><span class="info-label">メール</span><span class="info-value" style="font-size:12px;">${s.email_dec||'—'}</span></div><div class="info-row"><span class="info-label">パスワード</span><div style="display:flex;align-items:center;gap:8px;"><span class="pw-value" id="pw-${s.id}">${s.pw_dec||'—'}</span><span style="font-size:12px;color:var(--accent);cursor:pointer;" onclick="togglePw('pw-${s.id}',this)">表示</span></div></div><div class="info-row"><span class="info-label">支払い方法</span><span class="info-value">${s.payment_method||'—'}</span></div></div>`).join('');
 }
+function togglePw(id,btn){const el=document.getElementById(id);el.classList.toggle('revealed');btn.textContent=el.classList.contains('revealed')?'隠す':'表示';}
+async function doCheckin(){showToast('✅ チェックイン完了！');}
 </script>
 </body>
 </html>
