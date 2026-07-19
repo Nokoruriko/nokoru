@@ -127,7 +127,13 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
   <div class="header" id="header-home">
     <div class="header-inner">
       <div class="logo">Nokoru<span> / ノコル</span></div>
-      <div class="avatar" id="user-avatar" onclick="goScreen('settings')">田</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="notif-bell" style="display:none;position:relative;cursor:pointer;" onclick="goScreen('unlocked')">
+          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:1.8;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <div id="notif-dot" style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid white;display:none;"></div>
+        </div>
+        <div class="avatar" id="user-avatar" onclick="goScreen('settings')">田</div>
+      </div>
     </div>
   </div>
   <div class="header" id="header-trust" style="display:none;">
@@ -161,6 +167,12 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
     <div class="section-head"><h2>契約中</h2><a onclick="openModal('add-service')" style="font-size:13px;color:var(--accent);cursor:pointer;">＋ 追加</a></div>
     <div id="subs-list"><div class="loading">読み込み中...</div></div>
     <div class="add-btn" onclick="openModal('add-service')">＋ サービスを追加する</div>
+    <div onclick="goScreen('trust')" style="margin:0 16px 12px;text-align:center;font-size:12px;color:var(--text-muted);cursor:pointer;">SNSアカウントの登録は<span style="color:var(--accent);font-weight:600;">もしもの時</span>タブから</div>
+    <!-- 申請中バナー -->
+    <div id="pending-banner" style="display:none;margin:12px 16px 0;background:var(--warning-light);border:1px solid #F5CBA7;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">⏳</span>
+      <div><div style="font-size:13px;font-weight:600;color:var(--warning);" id="pending-banner-text">解錠申請中</div><div style="font-size:11px;color:var(--warning);">運営が確認中です</div></div>
+    </div>
     <div class="checkin">
       <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>
       <div class="checkin-text">今月の生存確認<br><span style="font-size:11px;opacity:.7;">手続きする人への安心のサイン</span></div>
@@ -398,7 +410,7 @@ async function setupUser(user){
   document.querySelectorAll('.avatar').forEach(el=>el.textContent=init);
   document.getElementById('settings-name').textContent=user.user_metadata?.name||'—';
   document.getElementById('settings-email').textContent=user.email||'—';
-  try{await Promise.all([loadSubscriptions(),loadTrustees(),loadSns()]);}catch(e){showToast('データの読み込みに失敗しました');}
+  try{await Promise.all([loadSubscriptions(),loadTrustees(),loadSns()]);await checkNotifications();}catch(e){showToast('データの読み込みに失敗しました');}
 }
 
 function switchAuthTab(tab){
@@ -799,6 +811,33 @@ function toggleUnlocked(uid) {
 }
 function togglePw(id,btn){const el=document.getElementById(id);el.classList.toggle('revealed');btn.textContent=el.classList.contains('revealed')?'隠す':'表示';}
 async function doCheckin(){showToast('✅ チェックイン完了！');}
+
+async function checkNotifications() {
+  // 承認済みの申請があれば通知を表示
+  try {
+    const { data: approved } = await sb.from('unlock_requests')
+      .select('owner_id')
+      .eq('requester_id', currentUser.id)
+      .eq('status', 'approved');
+    const { data: pending } = await sb.from('unlock_requests')
+      .select('owner_id')
+      .eq('requester_id', currentUser.id)
+      .eq('status', 'pending');
+
+    const bell = document.getElementById('notif-bell');
+    const dot = document.getElementById('notif-dot');
+    if (bell) bell.style.display = (approved?.length > 0 || pending?.length > 0) ? 'block' : 'none';
+    if (dot) dot.style.display = approved?.length > 0 ? 'block' : 'none';
+
+    // 申請中バナー
+    const banner = document.getElementById('pending-banner');
+    if (banner && pending?.length > 0) {
+      banner.style.display = 'flex';
+    } else if (banner) {
+      banner.style.display = 'none';
+    }
+  } catch(e) {}
+}
 </script>
 </body>
 </html>
