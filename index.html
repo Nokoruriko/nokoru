@@ -382,7 +382,7 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,storage:window.localStorage}});
 let currentUser=null,isSetup=false,currentUnlockTarget=null,decryptedSubs=[];
 
-function getEncKey(u){return CryptoJS.SHA256(u.id+u.email).toString();}
+function getEncKey(u){return CryptoJS.SHA256(u.id).toString();}
 function encryptText(t,k){return t?CryptoJS.AES.encrypt(t,k).toString():'';}
 function decryptText(c,k){if(!c)return '';try{return CryptoJS.AES.decrypt(c,k).toString(CryptoJS.enc.Utf8)||c;}catch(e){return c;}}
 
@@ -444,7 +444,7 @@ function goScreen(name){
     document.getElementById('header-'+s).style.display=s===name?'block':'none';
     document.getElementById('nav-'+s).classList.toggle('active',s===name);
   });
-  if(name==='unlocked')renderUnlockedSubs();
+  if(name==='unlocked')renderUnlockedSubs();  // async
 }
 function switchInnerTab(tab){
   ['own','trustee'].forEach(t=>{
@@ -661,10 +661,84 @@ function removeFile2(){
   const fi=document.getElementById('file-input2');if(fi)fi.value='';
 }
 
-function renderUnlockedSubs(){
-  if(!decryptedSubs.length){document.getElementById('unlocked-subs').innerHTML='<div class="empty">サブスクがまだ登録されていません</div>';return;}
-  const colors=['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC'];
-  document.getElementById('unlocked-subs').innerHTML=decryptedSubs.map((s,i)=>`<div class="card" style="margin-top:${i===0?'12px':'0'};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="width:36px;height:36px;border-radius:9px;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">${s.name.charAt(0)}</div><div><div style="font-size:15px;font-weight:700;">${s.name}</div><div style="font-size:12px;color:var(--text-muted);">¥${s.price.toLocaleString()}/${s.cycle==='monthly'?'月':'年'}</div></div></div><div class="info-row"><span class="info-label">メール</span><span class="info-value" style="font-size:12px;">${s.email_dec||'—'}</span></div><div class="info-row"><span class="info-label">パスワード</span><div style="display:flex;align-items:center;gap:8px;"><span class="pw-value" id="pw-${s.id}">${s.pw_dec||'—'}</span><span style="font-size:12px;color:var(--accent);cursor:pointer;" onclick="togglePw('pw-${s.id}',this)">表示</span></div></div><div class="info-row"><span class="info-label">支払い方法</span><span class="info-value">${s.payment_method||'—'}</span></div></div>`).join('');
+async function renderUnlockedSubs(){
+  const subsEl = document.getElementById('unlocked-subs');
+  const snsEl = document.getElementById('unlocked-sns');
+  subsEl.innerHTML = '<div class="loading">読み込み中...</div>';
+
+  // 承認済みの申請を確認
+  const { data: requests } = await sb.from('unlock_requests')
+    .select('*')
+    .eq('requester_id', currentUser.id)
+    .eq('status', 'approved');
+
+  if (!requests || requests.length === 0) {
+    subsEl.innerHTML = `<div class="empty">
+      <div style="font-size:36px;margin-bottom:12px;">🔒</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">承認待ちです</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">解錠申請が承認されると<br>ここに情報が表示されます。</div>
+    </div>`;
+    snsEl.innerHTML = '<div class="empty">承認後に表示されます</div>';
+    return;
+  }
+
+  // 承認済みのオーナーIDリスト
+  const ownerIds = [...new Set(requests.map(r => r.owner_id))];
+  const colors = ['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC'];
+
+  let allSubsHtml = '';
+  let allSnsHtml = '';
+
+  for (const ownerId of ownerIds) {
+    // オーナー名を取得
+    const { data: ownerProfile } = await sb.from('profiles').select('name').eq('id', ownerId).single();
+    const ownerName = ownerProfile?.name || '—';
+    const ownerKey = CryptoJS.SHA256(ownerId).toString();
+
+    // オーナーのサブスクを取得
+    const { data: subs } = await sb.from('subscriptions').select('*').eq('user_id', ownerId);
+    if (subs && subs.length > 0) {
+      allSubsHtml += `<div style="padding:12px 16px 4px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;">${ownerName}さんのサブスク</div>`;
+      allSubsHtml += subs.map((s,i) => {
+        const emailDec = decryptText(s.email, ownerKey);
+        const pwDec = decryptText(s.password_encrypted, ownerKey);
+        return `<div class="card" style="margin-top:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:36px;height:36px;border-radius:9px;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">${s.name.charAt(0)}</div>
+            <div><div style="font-size:15px;font-weight:700;">${s.name}</div><div style="font-size:12px;color:var(--text-muted);">¥${s.price.toLocaleString()}/${s.cycle==='monthly'?'月':'年'}</div></div>
+          </div>
+          <div class="info-row"><span class="info-label">メール</span><span class="info-value" style="font-size:12px;">${emailDec||'—'}</span></div>
+          <div class="info-row">
+            <span class="info-label">パスワード</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="pw-value" id="pw-${s.id}">${pwDec||'—'}</span>
+              <span style="font-size:12px;color:var(--accent);cursor:pointer;" onclick="togglePw('pw-${s.id}',this)">表示</span>
+            </div>
+          </div>
+          <div class="info-row"><span class="info-label">支払い方法</span><span class="info-value">${s.payment_method||'—'}</span></div>
+        </div>`;
+      }).join('');
+    }
+
+    // オーナーのSNSを取得
+    const { data: sns } = await sb.from('sns_accounts').select('*').eq('user_id', ownerId);
+    if (sns && sns.length > 0) {
+      allSnsHtml += `<div style="padding:12px 16px 4px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;">${ownerName}さんのSNS</div>`;
+      allSnsHtml += '<div class="card" style="padding:4px 16px;">' + sns.map(s => {
+        const pwDec = decryptText(s.password_encrypted, ownerKey);
+        return `<div class="sub-item">
+          <div class="sub-info"><div class="sub-name">${s.platform}</div><div class="sub-date">${s.username||''}</div></div>
+          <div style="text-align:right;">
+            <div class="pw-value" id="spw-${s.id}" style="font-size:11px;">${pwDec||'—'}</div>
+            <span style="font-size:11px;color:var(--accent);cursor:pointer;" onclick="togglePw('spw-${s.id}',this)">表示</span>
+          </div>
+        </div>`;
+      }).join('') + '</div>';
+    }
+  }
+
+  subsEl.innerHTML = allSubsHtml || '<div class="empty">サブスクがありません</div>';
+  snsEl.innerHTML = allSnsHtml || '<div class="empty">SNSアカウントがありません</div>';
 }
 function togglePw(id,btn){const el=document.getElementById(id);el.classList.toggle('revealed');btn.textContent=el.classList.contains('revealed')?'隠す':'表示';}
 async function doCheckin(){showToast('✅ チェックイン完了！');}
