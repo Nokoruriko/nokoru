@@ -828,7 +828,7 @@ function toggleNotifPopup(e) {
     loadNotifications();
   }
 }
-function closeNotifPopup() {
+window.closeNotifPopup = function() {
   document.getElementById('notif-popup').classList.remove('open');
 }
 // 外クリックで閉じる
@@ -920,7 +920,7 @@ async function loadNotifications() {
   window._notifActions = notifs.map(n => n.action);
 }
 
-function notifAction(i) {
+window.notifAction = function(i) {
   if (window._notifActions && window._notifActions[i]) {
     window._notifActions[i]();
   }
