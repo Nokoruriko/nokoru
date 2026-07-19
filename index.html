@@ -832,6 +832,9 @@ function toggleNotifPopup(e) {
   } else {
     popup.classList.add('open');
     loadNotifications();
+    // 開いたら赤い点を消す
+    const dot = document.getElementById('notif-dot');
+    if (dot) dot.style.display = 'none';
   }
 }
 window.closeNotifPopup = function() {
