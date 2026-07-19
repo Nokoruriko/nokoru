@@ -822,7 +822,15 @@ async function renderUnlockedSubs(){
 }
 
 
-async function doCheckin(){showToast('✅ チェックイン完了！');}
+async function doCheckin(){
+  try {
+    const { error } = await sb.from('checkins').insert({ user_id: currentUser.id });
+    if (error) { showToast('エラー: ' + error.message); return; }
+    showToast('✅ チェックイン完了！手続きする人に通知されました');
+  } catch(e) {
+    showToast('エラーが発生しました');
+  }
+}
 
 function toggleNotifPopup(e) {
   e.stopPropagation();
@@ -893,8 +901,22 @@ async function loadNotifications() {
 
     (asTrustee||[]).forEach(t => {
       const name = trusteeOwnerNames[t.owner_id] || '—';
-      notifs.push({ icon: '👤', text: `${name}さんから手続きする人に任命されました`, sub: '「もしもの時」→「手続きする人」タブで確認できます', color: 'var(--accent)', bg: 'var(--accent-light)', time: t.created_at, action: () => { closeModal('notifications'); goScreen('trust'); switchInnerTab('trustee'); } });
+      notifs.push({ icon: '👤', text: `${name}さんから手続きする人に任命されました`, sub: '「もしもの時」→「手続きする人」タブで確認できます', color: 'var(--accent)', bg: 'var(--accent-light)', time: t.created_at, action: () => { closeNotifPopup(); goScreen('trust'); switchInnerTab('trustee'); } });
     });
+
+    // チェックイン通知（自分が手続きする人として登録されている人のチェックイン）
+    if (trusteeOwnerIds.length > 0) {
+      const { data: checkins } = await sb.from('checkins')
+        .select('user_id, created_at')
+        .in('user_id', trusteeOwnerIds)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      (checkins||[]).forEach(c => {
+        const name = trusteeOwnerNames[c.user_id] || '—';
+        notifs.push({ icon: '💚', text: `${name}さんがチェックインしました`, sub: '元気に生活しています', color: 'var(--success)', bg: 'var(--success-light)', time: c.created_at, action: null });
+      });
+    }
 
   } catch(e) {
     console.error(e);
