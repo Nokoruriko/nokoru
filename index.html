@@ -223,12 +223,8 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
 
   <!-- 解錠済み -->
   <div id="screen-unlocked" class="screen">
-    <div class="utab-row">
-      <div class="utab active" onclick="switchUtab('subs',this)">サブスク</div>
-      <div class="utab" onclick="switchUtab('sns',this)">SNS</div>
-    </div>
     <div id="unlocked-subs"><div class="empty">解錠されたサブスク情報がここに表示されます</div></div>
-    <div id="unlocked-sns" style="display:none;"><div class="empty">解錠されたSNS情報がここに表示されます</div></div>
+    <div id="unlocked-sns" style="display:none;"></div>
   </div>
 
   <!-- 設定 -->
@@ -665,6 +661,7 @@ async function renderUnlockedSubs(){
   const subsEl = document.getElementById('unlocked-subs');
   const snsEl = document.getElementById('unlocked-sns');
   subsEl.innerHTML = '<div class="loading">読み込み中...</div>';
+  snsEl.innerHTML = '';
 
   // 承認済みの申請を確認
   const { data: requests } = await sb.from('unlock_requests')
@@ -678,34 +675,54 @@ async function renderUnlockedSubs(){
       <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">承認待ちです</div>
       <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">解錠申請が承認されると<br>ここに情報が表示されます。</div>
     </div>`;
-    snsEl.innerHTML = '<div class="empty">承認後に表示されます</div>';
     return;
   }
 
-  // 承認済みのオーナーIDリスト
   const ownerIds = [...new Set(requests.map(r => r.owner_id))];
   const colors = ['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC'];
 
-  let allSubsHtml = '';
-  let allSnsHtml = '';
+  // 人物一覧を表示（クリックで展開）
+  subsEl.innerHTML = '';
+  snsEl.innerHTML = '';
 
   for (const ownerId of ownerIds) {
-    // オーナー名を取得
     const { data: ownerProfile } = await sb.from('profiles').select('name').eq('id', ownerId).single();
     const ownerName = ownerProfile?.name || '—';
     const ownerKey = CryptoJS.SHA256(ownerId).toString();
 
-    // オーナーのサブスクを取得
+    // サブスク取得
     const { data: subs } = await sb.from('subscriptions').select('*').eq('user_id', ownerId);
+    // SNS取得
+    const { data: sns } = await sb.from('sns_accounts').select('*').eq('user_id', ownerId);
+
+    const subsCount = subs?.length || 0;
+    const snsCount = sns?.length || 0;
+    const uid = ownerId.replace(/-/g,'').substring(0,8);
+
+    // 人物カード（クリックで展開）
+    const personCard = document.createElement('div');
+    personCard.style.cssText = 'margin:12px 16px 0;';
+    personCard.innerHTML = `
+      <div onclick="toggleUnlocked('${uid}')" style="background:var(--accent);border-radius:var(--radius);padding:16px;cursor:pointer;display:flex;align-items:center;gap:14px;">
+        <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white;flex-shrink:0;">${ownerName.charAt(0)}</div>
+        <div style="flex:1;">
+          <div style="font-size:16px;font-weight:700;color:white;">${ownerName}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px;">サブスク ${subsCount}件 ・ SNS ${snsCount}件</div>
+        </div>
+        <div id="arrow-${uid}" style="color:rgba(255,255,255,0.7);font-size:18px;transition:transform .2s;">▼</div>
+      </div>
+      <div id="detail-${uid}" style="display:none;">`;
+
+    // サブスク詳細
     if (subs && subs.length > 0) {
-      allSubsHtml += `<div style="padding:12px 16px 4px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;">${ownerName}さんのサブスク</div>`;
-      allSubsHtml += subs.map((s,i) => {
+      let subsHtml = '<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text-muted);padding:0 4px;letter-spacing:.5px;">💳 サブスク</div>';
+      subsHtml += subs.map((s,i) => {
         const emailDec = decryptText(s.email, ownerKey);
         const pwDec = decryptText(s.password_encrypted, ownerKey);
-        return `<div class="card" style="margin-top:0;">
+        return `<div class="card" style="margin:6px 0 0;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
             <div style="width:36px;height:36px;border-radius:9px;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">${s.name.charAt(0)}</div>
-            <div><div style="font-size:15px;font-weight:700;">${s.name}</div><div style="font-size:12px;color:var(--text-muted);">¥${s.price.toLocaleString()}/${s.cycle==='monthly'?'月':'年'}</div></div>
+            <div><div style="font-size:14px;font-weight:700;">${s.name}</div><div style="font-size:12px;color:var(--text-muted);">¥${s.price.toLocaleString()}/${s.cycle==='monthly'?'月':'年'}</div></div>
           </div>
           <div class="info-row"><span class="info-label">メール</span><span class="info-value" style="font-size:12px;">${emailDec||'—'}</span></div>
           <div class="info-row">
@@ -718,27 +735,36 @@ async function renderUnlockedSubs(){
           <div class="info-row"><span class="info-label">支払い方法</span><span class="info-value">${s.payment_method||'—'}</span></div>
         </div>`;
       }).join('');
+      personCard.innerHTML += subsHtml;
     }
 
-    // オーナーのSNSを取得
-    const { data: sns } = await sb.from('sns_accounts').select('*').eq('user_id', ownerId);
+    // SNS詳細
     if (sns && sns.length > 0) {
-      allSnsHtml += `<div style="padding:12px 16px 4px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;">${ownerName}さんのSNS</div>`;
-      allSnsHtml += '<div class="card" style="padding:4px 16px;">' + sns.map(s => {
+      let snsHtml = '<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--text-muted);padding:0 4px;letter-spacing:.5px;">📱 SNSアカウント</div>';
+      snsHtml += '<div class="card" style="margin:6px 0 0;padding:4px 16px;">' + sns.map(s => {
         const pwDec = decryptText(s.password_encrypted, ownerKey);
         return `<div class="sub-item">
           <div class="sub-info"><div class="sub-name">${s.platform}</div><div class="sub-date">${s.username||''}</div></div>
           <div style="text-align:right;">
-            <div class="pw-value" id="spw-${s.id}" style="font-size:11px;">${pwDec||'—'}</div>
-            <span style="font-size:11px;color:var(--accent);cursor:pointer;" onclick="togglePw('spw-${s.id}',this)">表示</span>
+            <span class="pw-value" id="spw-${s.id}" style="font-size:11px;">${pwDec||'—'}</span>
+            <span style="display:block;font-size:11px;color:var(--accent);cursor:pointer;margin-top:2px;" onclick="togglePw('spw-${s.id}',this)">表示</span>
           </div>
         </div>`;
       }).join('') + '</div>';
+      personCard.innerHTML += snsHtml;
     }
-  }
 
-  subsEl.innerHTML = allSubsHtml || '<div class="empty">サブスクがありません</div>';
-  snsEl.innerHTML = allSnsHtml || '<div class="empty">SNSアカウントがありません</div>';
+    personCard.innerHTML += '</div></div>';
+    subsEl.appendChild(personCard);
+  }
+}
+
+function toggleUnlocked(uid) {
+  const detail = document.getElementById('detail-' + uid);
+  const arrow = document.getElementById('arrow-' + uid);
+  const isOpen = detail.style.display !== 'none';
+  detail.style.display = isOpen ? 'none' : 'block';
+  arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 function togglePw(id,btn){const el=document.getElementById(id);el.classList.toggle('revealed');btn.textContent=el.classList.contains('revealed')?'隠す':'表示';}
 async function doCheckin(){showToast('✅ チェックイン完了！');}
