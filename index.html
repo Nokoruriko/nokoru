@@ -128,7 +128,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
     <div class="header-inner">
       <div class="logo">Nokoru<span> / ノコル</span></div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div id="notif-bell" style="display:none;position:relative;cursor:pointer;" onclick="goScreen('unlocked')">
+        <div id="notif-bell" style="display:none;position:relative;cursor:pointer;" onclick="openNotifications()">
           <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:1.8;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
           <div id="notif-dot" style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid white;display:none;"></div>
         </div>
@@ -167,7 +167,12 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
     <div class="section-head"><h2>契約中</h2><a onclick="openModal('add-service')" style="font-size:13px;color:var(--accent);cursor:pointer;">＋ 追加</a></div>
     <div id="subs-list"><div class="loading">読み込み中...</div></div>
     <div class="add-btn" onclick="openModal('add-service')">＋ サービスを追加する</div>
-    <div onclick="goScreen('trust')" style="margin:0 16px 12px;text-align:center;font-size:12px;color:var(--text-muted);cursor:pointer;">SNSアカウントの登録は<span style="color:var(--accent);font-weight:600;">もしもの時</span>タブから</div>
+    <div class="section-head">
+      <h2>SNSアカウント</h2>
+      <a onclick="openModal('add-sns')" style="font-size:13px;color:var(--accent);cursor:pointer;">＋ 追加</a>
+    </div>
+    <div id="sns-list-home"><div class="loading">読み込み中...</div></div>
+    <div class="add-btn" onclick="openModal('add-sns')">＋ SNSアカウントを追加する</div>
     <!-- 申請中バナー -->
     <div id="pending-banner" style="display:none;margin:12px 16px 0;background:var(--warning-light);border:1px solid #F5CBA7;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;">
       <span style="font-size:20px;">⏳</span>
@@ -374,6 +379,17 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
   </div>
 </div>
 
+<!-- 通知センターモーダル -->
+<div class="modal-bg" id="modal-notifications">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>🔔 通知</h3>
+      <button class="modal-close" onclick="closeModal('notifications')">×</button>
+    </div>
+    <div id="notifications-list"><div class="loading">読み込み中...</div></div>
+  </div>
+</div>
+
 <!-- 申請完了 -->
 <div class="modal-bg" id="modal-unlock-done">
   <div class="modal-box" style="text-align:center;padding:32px 20px 40px;">
@@ -539,15 +555,28 @@ async function addSubscription(){
 
 async function loadSns(){
   const{data}=await sb.from('sns_accounts').select('*').order('created_at');
-  document.getElementById('sns-list').innerHTML=(!data||!data.length)
-    ?'<div class="empty" style="padding:16px 0;">SNSアカウントがまだありません</div>'
-    :'<div class="card" style="padding:4px 16px;">'+data.map(s=>`<div class="sub-item"><div class="sub-info"><div class="sub-name">${s.platform}</div><div class="sub-date">${s.username||''}</div></div><span class="badge badge-ok">対象</span></div>`).join('')+'</div>';
+  const emptyHtml='<div class="empty" style="padding:16px 0;">SNSアカウントがまだありません</div>';
+  const listHtml=(!data||!data.length)?emptyHtml
+    :'<div class="card" style="padding:4px 16px;">'+data.map(s=>`
+      <div class="sub-item">
+        <div class="sub-icon" style="background:#6B47DC;font-size:13px;">${s.platform.charAt(0)}</div>
+        <div class="sub-info"><div class="sub-name">${s.platform}</div><div class="sub-date">${s.username||''}</div></div>
+        <span class="badge badge-ok">対象</span>
+      </div>`).join('')+'</div>';
+  // もしもの時タブ
+  const el1=document.getElementById('sns-list');
+  if(el1)el1.innerHTML=listHtml;
+  // サブスクホーム
+  const el2=document.getElementById('sns-list-home');
+  if(el2)el2.innerHTML=listHtml;
 }
 async function addSns(){
   const key=getEncKey(currentUser);
   const{error}=await sb.from('sns_accounts').insert({user_id:currentUser.id,platform:document.getElementById('sns-platform').value,username:document.getElementById('sns-username').value,password_encrypted:encryptText(document.getElementById('sns-password').value,key),should_delete:true});
   if(error){showToast('エラー: '+error.message);return;}
-  closeModal('add-sns');showToast('追加しました！');await loadSns();
+  closeModal('add-sns');
+  ['sns-username','sns-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  showToast('追加しました！');await loadSns();
 }
 
 async function loadTrustees(){
@@ -702,15 +731,10 @@ function removeFile2(){
 
 async function renderUnlockedSubs(){
   const subsEl = document.getElementById('unlocked-subs');
-  const snsEl = document.getElementById('unlocked-sns');
   subsEl.innerHTML = '<div class="loading">読み込み中...</div>';
-  snsEl.innerHTML = '';
 
-  // 承認済みの申請を確認
   const { data: requests } = await sb.from('unlock_requests')
-    .select('*')
-    .eq('requester_id', currentUser.id)
-    .eq('status', 'approved');
+    .select('*').eq('requester_id', currentUser.id).eq('status', 'approved');
 
   if (!requests || requests.length === 0) {
     subsEl.innerHTML = `<div class="empty">
@@ -721,45 +745,23 @@ async function renderUnlockedSubs(){
     return;
   }
 
-  const ownerIds = [...new Set(requests.map(r => r.owner_id))];
+  const ownerIds = [...new Set(requests.map(r => r.owner_id))].filter(id => id !== currentUser.id);
   const colors = ['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC'];
-
-  // 人物一覧を表示（クリックで展開）
   subsEl.innerHTML = '';
-  snsEl.innerHTML = '';
 
   for (const ownerId of ownerIds) {
     const { data: ownerProfile } = await sb.from('profiles').select('name').eq('id', ownerId).single();
     const ownerName = ownerProfile?.name || '—';
     const ownerKey = CryptoJS.SHA256(ownerId).toString();
-
-    // サブスク取得
     const { data: subs } = await sb.from('subscriptions').select('*').eq('user_id', ownerId);
-    // SNS取得
     const { data: sns } = await sb.from('sns_accounts').select('*').eq('user_id', ownerId);
-
-    const subsCount = subs?.length || 0;
-    const snsCount = sns?.length || 0;
     const uid = ownerId.replace(/-/g,'').substring(0,8);
 
-    // 人物カード（クリックで展開）
-    const personCard = document.createElement('div');
-    personCard.style.cssText = 'margin:12px 16px 0;';
-    personCard.innerHTML = `
-      <div onclick="toggleUnlocked('${uid}')" style="background:var(--accent);border-radius:var(--radius);padding:16px;cursor:pointer;display:flex;align-items:center;gap:14px;">
-        <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white;flex-shrink:0;">${ownerName.charAt(0)}</div>
-        <div style="flex:1;">
-          <div style="font-size:16px;font-weight:700;color:white;">${ownerName}</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px;">サブスク ${subsCount}件 ・ SNS ${snsCount}件</div>
-        </div>
-        <div id="arrow-${uid}" style="color:rgba(255,255,255,0.7);font-size:18px;transition:transform .2s;">▼</div>
-      </div>
-      <div id="detail-${uid}" style="display:none;">`;
-
-    // サブスク詳細
+    // 詳細HTMLを先に組み立て
+    let detailHtml = '';
     if (subs && subs.length > 0) {
-      let subsHtml = '<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text-muted);padding:0 4px;letter-spacing:.5px;">💳 サブスク</div>';
-      subsHtml += subs.map((s,i) => {
+      detailHtml += '<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text-muted);padding:0 4px;letter-spacing:.5px;">💳 サブスク</div>';
+      detailHtml += subs.map((s,i) => {
         const emailDec = decryptText(s.email, ownerKey);
         const pwDec = decryptText(s.password_encrypted, ownerKey);
         return `<div class="card" style="margin:6px 0 0;">
@@ -778,64 +780,142 @@ async function renderUnlockedSubs(){
           <div class="info-row"><span class="info-label">支払い方法</span><span class="info-value">${s.payment_method||'—'}</span></div>
         </div>`;
       }).join('');
-      personCard.innerHTML += subsHtml;
     }
-
-    // SNS詳細
     if (sns && sns.length > 0) {
-      let snsHtml = '<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--text-muted);padding:0 4px;letter-spacing:.5px;">📱 SNSアカウント</div>';
-      snsHtml += '<div class="card" style="margin:6px 0 0;padding:4px 16px;">' + sns.map(s => {
+      detailHtml += '<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--text-muted);padding:0 4px;letter-spacing:.5px;">📱 SNSアカウント</div>';
+      detailHtml += '<div class="card" style="margin:6px 0 0;padding:4px 16px;">' + sns.map(s => {
         const pwDec = decryptText(s.password_encrypted, ownerKey);
         return `<div class="sub-item">
           <div class="sub-info"><div class="sub-name">${s.platform}</div><div class="sub-date">${s.username||''}</div></div>
           <div style="text-align:right;">
             <span class="pw-value" id="spw-${s.id}" style="font-size:11px;">${pwDec||'—'}</span>
-            <span style="display:block;font-size:11px;color:var(--accent);cursor:pointer;margin-top:2px;" onclick="togglePw('spw-${s.id}',this)">表示</span>
+            <span style="display:block;font-size:11px;color:var(--accent);cursor:pointer;" onclick="togglePw('spw-${s.id}',this)">表示</span>
           </div>
         </div>`;
       }).join('') + '</div>';
-      personCard.innerHTML += snsHtml;
     }
+    if (!detailHtml) detailHtml = '<div class="empty" style="padding:16px;">データがありません</div>';
 
-    personCard.innerHTML += '</div></div>';
-    subsEl.appendChild(personCard);
+    // カードを一気に組み立て
+    const div = document.createElement('div');
+    div.style.cssText = 'margin:12px 16px 0;';
+    div.innerHTML = `
+      <div onclick="toggleUnlocked('${uid}')" style="background:var(--accent);border-radius:var(--radius);padding:16px;cursor:pointer;display:flex;align-items:center;gap:14px;">
+        <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white;flex-shrink:0;">${ownerName.charAt(0)}</div>
+        <div style="flex:1;">
+          <div style="font-size:16px;font-weight:700;color:white;">${ownerName}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px;">サブスク ${subs?.length||0}件 ・ SNS ${sns?.length||0}件 　タップして表示</div>
+        </div>
+        <div id="arrow-${uid}" style="color:rgba(255,255,255,.7);font-size:18px;transition:transform .3s;">▼</div>
+      </div>
+      <div id="detail-${uid}" style="display:none;padding-bottom:8px;">${detailHtml}</div>`;
+    subsEl.appendChild(div);
   }
 }
 
-function toggleUnlocked(uid) {
-  const detail = document.getElementById('detail-' + uid);
-  const arrow = document.getElementById('arrow-' + uid);
-  const isOpen = detail.style.display !== 'none';
-  detail.style.display = isOpen ? 'none' : 'block';
-  arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
-}
-function togglePw(id,btn){const el=document.getElementById(id);el.classList.toggle('revealed');btn.textContent=el.classList.contains('revealed')?'隠す':'表示';}
+
 async function doCheckin(){showToast('✅ チェックイン完了！');}
 
+async function openNotifications() {
+  openModal('notifications');
+  document.getElementById('notifications-list').innerHTML = '<div class="loading">読み込み中...</div>';
+
+  const notifs = [];
+
+  try {
+    // 承認済み・申請中の解錠申請
+    const { data: requests } = await sb.from('unlock_requests')
+      .select('owner_id, status, created_at')
+      .eq('requester_id', currentUser.id)
+      .order('created_at', { ascending: false });
+
+    // オーナー名を取得
+    const ownerIds = [...new Set((requests||[]).map(r => r.owner_id))];
+    let ownerNames = {};
+    if (ownerIds.length > 0) {
+      const { data: profiles } = await sb.from('profiles').select('id, name').in('id', ownerIds);
+      (profiles||[]).forEach(p => { ownerNames[p.id] = p.name; });
+    }
+
+    (requests||[]).forEach(r => {
+      const name = ownerNames[r.owner_id] || '—';
+      if (r.status === 'approved') {
+        notifs.push({ icon: '🔓', text: `${name}さんの解錠申請が承認されました`, sub: '解錠済みタブで情報を確認できます', color: 'var(--success)', bg: 'var(--success-light)', time: r.created_at, action: () => { closeModal('notifications'); goScreen('unlocked'); } });
+      } else if (r.status === 'pending') {
+        notifs.push({ icon: '⏳', text: `${name}さんの解錠申請中`, sub: '運営が確認中です。しばらくお待ちください。', color: 'var(--warning)', bg: 'var(--warning-light)', time: r.created_at, action: null });
+      }
+    });
+
+    // 手続きする人として任命されている
+    const { data: asTrustee } = await sb.from('trustees')
+      .select('owner_id, created_at')
+      .eq('trustee_user_id', currentUser.id)
+      .order('created_at', { ascending: false });
+
+    const trusteeOwnerIds = [...new Set((asTrustee||[]).map(t => t.owner_id))];
+    let trusteeOwnerNames = {};
+    if (trusteeOwnerIds.length > 0) {
+      const { data: tp } = await sb.from('profiles').select('id, name').in('id', trusteeOwnerIds);
+      (tp||[]).forEach(p => { trusteeOwnerNames[p.id] = p.name; });
+    }
+
+    (asTrustee||[]).forEach(t => {
+      const name = trusteeOwnerNames[t.owner_id] || '—';
+      notifs.push({ icon: '👤', text: `${name}さんから手続きする人に任命されました`, sub: '「もしもの時」→「手続きする人」タブで確認できます', color: 'var(--accent)', bg: 'var(--accent-light)', time: t.created_at, action: () => { closeModal('notifications'); goScreen('trust'); switchInnerTab('trustee'); } });
+    });
+
+  } catch(e) {
+    console.error(e);
+  }
+
+  if (notifs.length === 0) {
+    document.getElementById('notifications-list').innerHTML = '<div class="empty"><div style="font-size:32px;margin-bottom:8px;">🔔</div>通知はありません</div>';
+    return;
+  }
+
+  // 時間順に並べ替え
+  notifs.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  document.getElementById('notifications-list').innerHTML = notifs.map((n, i) => `
+    <div onclick="${n.action ? `notifAction(${i})` : ''}" style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:${n.bg};border-radius:var(--radius-sm);margin-bottom:8px;cursor:${n.action ? 'pointer' : 'default'};">
+      <div style="font-size:22px;flex-shrink:0;">${n.icon}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:${n.color};margin-bottom:3px;">${n.text}</div>
+        <div style="font-size:11px;color:${n.color};opacity:.8;">${n.sub}</div>
+      </div>
+      ${n.action ? `<div style="color:${n.color};font-size:16px;">›</div>` : ''}
+    </div>`).join('');
+
+  // actionを配列に保持
+  window._notifActions = notifs.map(n => n.action);
+}
+
+function notifAction(i) {
+  if (window._notifActions && window._notifActions[i]) {
+    window._notifActions[i]();
+  }
+}
+
 async function checkNotifications() {
-  // 承認済みの申請があれば通知を表示
   try {
     const { data: approved } = await sb.from('unlock_requests')
-      .select('owner_id')
-      .eq('requester_id', currentUser.id)
-      .eq('status', 'approved');
+      .select('owner_id').eq('requester_id', currentUser.id).eq('status', 'approved');
     const { data: pending } = await sb.from('unlock_requests')
-      .select('owner_id')
-      .eq('requester_id', currentUser.id)
-      .eq('status', 'pending');
+      .select('owner_id').eq('requester_id', currentUser.id).eq('status', 'pending');
+    const { data: asTrustee } = await sb.from('trustees')
+      .select('id').eq('trustee_user_id', currentUser.id);
+
+    const hasAny = (approved?.length > 0) || (pending?.length > 0) || (asTrustee?.length > 0);
+    const hasNew = approved?.length > 0 || asTrustee?.length > 0;
 
     const bell = document.getElementById('notif-bell');
     const dot = document.getElementById('notif-dot');
-    if (bell) bell.style.display = (approved?.length > 0 || pending?.length > 0) ? 'block' : 'none';
-    if (dot) dot.style.display = approved?.length > 0 ? 'block' : 'none';
+    if (bell) bell.style.display = hasAny ? 'block' : 'none';
+    if (dot) dot.style.display = hasNew ? 'block' : 'none';
 
     // 申請中バナー
     const banner = document.getElementById('pending-banner');
-    if (banner && pending?.length > 0) {
-      banner.style.display = 'flex';
-    } else if (banner) {
-      banner.style.display = 'none';
-    }
+    if (banner) banner.style.display = pending?.length > 0 ? 'flex' : 'none';
   } catch(e) {}
 }
 </script>
