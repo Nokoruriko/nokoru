@@ -812,9 +812,9 @@ async function renderUnlockedSubs(){
       <div id="detail-${uid}" style="display:none;padding-bottom:8px;">${detailHtml}</div>`;
     subsEl.appendChild(div);
 
-    // addEventListener で開閉
-    div.querySelector('#header-' + uid).addEventListener('click', function() {
-      const detail = document.getElementById('detail-' + uid);
+    // addEventListener で開閉（firstChildで取得）
+    div.firstElementChild.addEventListener('click', function() {
+      const detail = div.lastElementChild;
       if (!detail) return;
       detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
     });
