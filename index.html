@@ -226,9 +226,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
       <div class="section-head"><h2>手続きする人</h2></div>
       <div style="margin:0 16px 8px;font-size:12px;color:var(--text-muted);line-height:1.6;">亡くなった後にサブスク解約・SNS削除をする人。第一〜第三候補を設定できます。</div>
       <div id="viewers-list"><div class="loading">読み込み中...</div></div>
-      <div class="section-head"><h2>SNSアカウント</h2></div>
-      <div id="sns-list"><div class="loading">読み込み中...</div></div>
-      <div class="add-btn" onclick="openModal('add-sns')">＋ SNSアカウントを追加する</div>
+
     </div>
 
     <!-- 手続きする人タブ -->
@@ -759,7 +757,7 @@ async function renderUnlockedSubs(){
     const ownerKey = CryptoJS.SHA256(ownerId).toString();
     const { data: subs } = await sb.from('subscriptions').select('*').eq('user_id', ownerId);
     const { data: sns } = await sb.from('sns_accounts').select('*').eq('user_id', ownerId);
-    const uid = ownerId.replace(/-/g,'').substring(0,8);
+    const uid = 'u' + ownerId.replace(/-/g,'').substring(0,12);
 
     // 詳細HTMLを先に組み立て
     let detailHtml = '';
