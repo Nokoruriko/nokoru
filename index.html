@@ -904,6 +904,23 @@ async function loadNotifications() {
       notifs.push({ icon: '👤', text: `${name}さんから手続きする人に任命されました`, sub: '「もしもの時」→「手続きする人」タブで確認できます', color: 'var(--accent)', bg: 'var(--accent-light)', time: t.created_at, action: () => { closeNotifPopup(); goScreen('trust'); switchInnerTab('trustee'); } });
     });
 
+    // 自分が登録した手続きする人の一覧
+    const { data: myViewers } = await sb.from('trustees')
+      .select('trustee_user_id, created_at')
+      .eq('owner_id', currentUser.id)
+      .order('created_at', { ascending: false });
+
+    const viewerIds = (myViewers||[]).map(t => t.trustee_user_id);
+    let viewerNames = {};
+    if (viewerIds.length > 0) {
+      const { data: vp } = await sb.from('profiles').select('id, name').in('id', viewerIds);
+      (vp||[]).forEach(p => { viewerNames[p.id] = p.name; });
+    }
+    (myViewers||[]).forEach(t => {
+      const name = viewerNames[t.trustee_user_id] || '—';
+      notifs.push({ icon: '👤', text: `${name}さんを手続きする人に登録しました`, sub: 'もしもの時にサブスク解約・SNS削除を行います', color: 'var(--accent)', bg: 'var(--accent-light)', time: t.created_at, action: () => { closeNotifPopup(); goScreen('trust'); switchInnerTab('own'); } });
+    });
+
     // チェックイン通知（自分が手続きする人として登録されている人のチェックイン）
     if (trusteeOwnerIds.length > 0) {
       const { data: checkins } = await sb.from('checkins')
@@ -969,6 +986,10 @@ async function checkNotifications() {
     const { data: asTrustee } = await sb.from('trustees')
       .select('owner_id').eq('trustee_user_id', currentUser.id);
 
+    // 自分が登録した手続きする人（オーナーとして）
+    const { data: myTrustees } = await sb.from('trustees')
+      .select('id').eq('owner_id', currentUser.id);
+
     // チェックイン通知（自分が手続きする人として登録されている人のチェックイン）
     let hasCheckin = false;
     const ownerIds = (asTrustee||[]).map(t => t.owner_id);
@@ -978,13 +999,13 @@ async function checkNotifications() {
       hasCheckin = checkins?.length > 0;
     }
 
-    const hasAny = (approved?.length > 0) || (pending?.length > 0) || (asTrustee?.length > 0) || hasCheckin;
+    const hasAny = (approved?.length > 0) || (pending?.length > 0) || (asTrustee?.length > 0) || hasCheckin || (myTrustees?.length > 0);
     const hasNew = (approved?.length > 0) || (asTrustee?.length > 0) || hasCheckin;
 
-    // ベルを常に表示（通知があれば）
+    // ベルは常に表示
     const bell = document.getElementById('notif-bell');
     const dot = document.getElementById('notif-dot');
-    if (bell) bell.style.display = hasAny ? 'block' : 'none';
+    if (bell) bell.style.display = 'block';
     if (dot) dot.style.display = hasNew ? 'block' : 'none';
 
     // 申請中バナー
