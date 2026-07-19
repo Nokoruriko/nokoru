@@ -501,7 +501,7 @@ function pickService(name,cycle,price){
 }
 
 async function loadSubscriptions(){
-  const{data,error}=await sb.from('subscriptions').select('*').order('created_at');
+  const{data,error}=await sb.from('subscriptions').select('*').eq('user_id',currentUser.id).order('created_at');
   if(error||!data){document.getElementById('subs-list').innerHTML='<div class="empty">読み込みエラー</div>';return;}
   const key=getEncKey(currentUser);
   decryptedSubs=data.map(s=>({...s,email_dec:decryptText(s.email,key),pw_dec:decryptText(s.password_encrypted,key)}));
@@ -557,12 +557,43 @@ async function loadTrustees(){
     document.getElementById('trustee-cards').innerHTML='<div class="empty"><div style="font-size:36px;margin-bottom:12px;">🔒</div><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">まだ任命されていません</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">誰かがあなたを「手続きする人」として<br>登録すると、ここに表示されます。</div></div>';
     return;
   }
+
+  // 申請状況を取得
+  const ownerIdsForStatus = asTrusteeData.map(t => t.owner_id);
+  let requestStatus = {};
+  try {
+    const { data: myRequests } = await sb.from('unlock_requests')
+      .select('owner_id, status')
+      .eq('requester_id', currentUser.id)
+      .in('owner_id', ownerIdsForStatus);
+    (myRequests||[]).forEach(r => { requestStatus[r.owner_id] = r.status; });
+  } catch(e) {}
   const ownerIds=asTrusteeData.map(t=>t.owner_id);
   let ownerNames={};
   try{const{data:op}=await sb.from('profiles').select('id,name').in('id',ownerIds);(op||[]).forEach(p=>{ownerNames[p.id]=p.name;});}catch(e){}
   document.getElementById('trustee-cards').innerHTML=asTrusteeData.map(t=>{
     const name=ownerNames[t.owner_id]||'—';
-    return `<div class="trustee-card"><div class="trustee-card-head"><div class="trustee-avatar" style="background:var(--accent-light);color:var(--accent);">${name.charAt(0)}</div><div style="flex:1;"><div style="font-size:16px;font-weight:700;">${name}</div><div style="font-size:12px;color:var(--text-muted);">あなたは手続きする人として登録されています</div></div></div><div style="padding:0 16px 14px;"><button onclick="startUnlockRequest('${t.owner_id}','${name}')" style="width:100%;padding:12px;background:var(--danger);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;">${name}さんの解錠を申請する</button></div></div>`;
+    const status=requestStatus[t.owner_id];
+    const statusBadge = status === 'approved'
+      ? `<div style="background:var(--success-light);border:1px solid var(--accent-mid);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">🔓</span><div><div style="font-size:12px;font-weight:600;color:var(--success);">${name}さんの解錠が承認されました</div><div style="font-size:11px;color:var(--success);">解錠済みタブで情報を確認できます</div></div></div>`
+      : status === 'pending'
+      ? `<div style="background:var(--warning-light);border:1px solid #F5CBA7;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">⏳</span><div><div style="font-size:12px;font-weight:600;color:var(--warning);">${name}さん 解錠申請中</div><div style="font-size:11px;color:var(--warning);">運営が確認中です。しばらくお待ちください。</div></div></div>`
+      : '';
+    const btnLabel = status === 'approved' ? '再申請する' : status === 'pending' ? '申請取り消し（準備中）' : `${name}さんの解錠を申請する`;
+    const btnStyle = status === 'pending'
+      ? 'width:100%;padding:12px;background:#ccc;color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:not-allowed;'
+      : 'width:100%;padding:12px;background:var(--danger);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;';
+    const btnDisabled = status === 'pending' ? 'disabled' : '';
+    return `<div class="trustee-card">
+      <div class="trustee-card-head">
+        <div class="trustee-avatar" style="background:var(--accent-light);color:var(--accent);">${name.charAt(0)}</div>
+        <div style="flex:1;"><div style="font-size:16px;font-weight:700;">${name}</div><div style="font-size:12px;color:var(--text-muted);">あなたは手続きする人として登録されています</div></div>
+      </div>
+      <div style="padding:0 16px 14px;">
+        ${statusBadge}
+        <button onclick="startUnlockRequest('${t.owner_id}','${name}')" style="${btnStyle}" ${btnDisabled}>${btnLabel}</button>
+      </div>
+    </div>`;
   }).join('');
 }
 
