@@ -877,7 +877,16 @@ function showAvatarImage(url) {
   const urlWithTs = url + '?t=' + Date.now();
   ['avatar-img-home', 'avatar-img-settings'].forEach(id => {
     const img = document.getElementById(id);
-    if (img) { img.src = urlWithTs; img.style.display = 'block'; }
+    if (img) {
+      img.src = urlWithTs;
+      img.style.display = 'block';
+      img.style.position = 'absolute';
+      img.style.top = '0';
+      img.style.left = '0';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+    }
   });
   ['avatar-initial-home', 'avatar-initial-settings'].forEach(id => {
     const el = document.getElementById(id);
