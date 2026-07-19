@@ -96,6 +96,12 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
 .trustee-card-head{padding:14px 16px;display:flex;align-items:center;gap:12px;}
 .trustee-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;}
 #service-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:600;max-height:200px;overflow-y:auto;}
+/* 通知吹き出し */
+.notif-popup{display:none;position:fixed;top:70px;right:calc(50% - 195px);width:300px;background:white;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:800;}
+.notif-popup.open{display:block;}
+.notif-popup::before{content:'';position:absolute;top:-8px;right:16px;width:14px;height:14px;background:white;border-left:1px solid var(--border);border-top:1px solid var(--border);transform:rotate(45deg);}
+.notif-popup-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.notif-popup-body{max-height:320px;overflow-y:auto;padding:8px;}
 </style>
 </head>
 <body>
@@ -128,7 +134,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
     <div class="header-inner">
       <div class="logo">Nokoru<span> / ノコル</span></div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div id="notif-bell" style="display:none;position:relative;cursor:pointer;" onclick="openNotifications()">
+        <div id="notif-bell" style="display:none;position:relative;cursor:pointer;" onclick="toggleNotifPopup(event)">
           <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:1.8;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
           <div id="notif-dot" style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid white;display:none;"></div>
         </div>
@@ -283,6 +289,15 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
 
 <div class="toast" id="toast"></div>
 
+<!-- 通知吹き出し -->
+<div class="notif-popup" id="notif-popup">
+  <div class="notif-popup-head">
+    <span style="font-size:13px;font-weight:700;">🔔 通知</span>
+    <span onclick="closeNotifPopup()" style="cursor:pointer;font-size:18px;color:var(--text-muted);">×</span>
+  </div>
+  <div class="notif-popup-body" id="notifications-list"><div class="loading">読み込み中...</div></div>
+</div>
+
 <!-- サービス追加 -->
 <div class="modal-bg" id="modal-add-service">
   <div class="modal-box">
@@ -376,17 +391,6 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
     <div style="background:var(--warning-light);border:1px solid #F5CBA7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--warning);line-height:1.6;">申請後、運営が死亡診断書を確認します。確認でき次第、情報が開示されます。</div>
     <button class="btn btn-danger" onclick="submitUnlock()" style="margin-bottom:8px;">申請を送信する</button>
     <button class="btn btn-ghost" onclick="closeModal('unlock-step3');openModal('unlock-step2')">← 戻る</button>
-  </div>
-</div>
-
-<!-- 通知センターモーダル -->
-<div class="modal-bg" id="modal-notifications">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3>🔔 通知</h3>
-      <button class="modal-close" onclick="closeModal('notifications')">×</button>
-    </div>
-    <div id="notifications-list"><div class="loading">読み込み中...</div></div>
   </div>
 </div>
 
@@ -816,8 +820,29 @@ async function renderUnlockedSubs(){
 
 async function doCheckin(){showToast('✅ チェックイン完了！');}
 
-async function openNotifications() {
-  openModal('notifications');
+function toggleNotifPopup(e) {
+  e.stopPropagation();
+  const popup = document.getElementById('notif-popup');
+  if (popup.classList.contains('open')) {
+    popup.classList.remove('open');
+  } else {
+    popup.classList.add('open');
+    loadNotifications();
+  }
+}
+function closeNotifPopup() {
+  document.getElementById('notif-popup').classList.remove('open');
+}
+// 外クリックで閉じる
+document.addEventListener('click', e => {
+  const popup = document.getElementById('notif-popup');
+  const bell = document.getElementById('notif-bell');
+  if (popup && !popup.contains(e.target) && !bell.contains(e.target)) {
+    popup.classList.remove('open');
+  }
+});
+
+async function loadNotifications() {
   document.getElementById('notifications-list').innerHTML = '<div class="loading">読み込み中...</div>';
 
   const notifs = [];
@@ -876,14 +901,21 @@ async function openNotifications() {
   // 時間順に並べ替え
   notifs.sort((a, b) => new Date(b.time) - new Date(a.time));
 
-  document.getElementById('notifications-list').innerHTML = notifs.map((n, i) => `
-    <div onclick="${n.action ? `notifAction(${i})` : ''}" style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:${n.bg};border-radius:var(--radius-sm);margin-bottom:8px;cursor:${n.action ? 'pointer' : 'default'};">
-      <div style="font-size:22px;flex-shrink:0;">${n.icon}</div>
+  function fmtDate(dateStr) {
+    const d = new Date(dateStr);
+    return `${d.getMonth()+1}月${d.getDate()}日`;
+  }
+
+  document.getElementById('notifications-list').innerHTML = notifs.length === 0
+    ? '<div class="empty"><div style="font-size:28px;margin-bottom:8px;">🔔</div>通知はありません</div>'
+    : notifs.map((n, i) => `
+    <div onclick="${n.action ? `notifAction(${i})` : ''}" style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:${n.bg};border-radius:var(--radius-sm);margin-bottom:6px;cursor:${n.action ? 'pointer' : 'default'};">
+      <div style="font-size:18px;flex-shrink:0;margin-top:1px;">${n.icon}</div>
       <div style="flex:1;">
-        <div style="font-size:13px;font-weight:600;color:${n.color};margin-bottom:3px;">${n.text}</div>
-        <div style="font-size:11px;color:${n.color};opacity:.8;">${n.sub}</div>
+        <div style="font-size:10px;color:${n.color};opacity:.7;margin-bottom:2px;">${fmtDate(n.time)}</div>
+        <div style="font-size:12px;font-weight:600;color:${n.color};">${n.text}</div>
       </div>
-      ${n.action ? `<div style="color:${n.color};font-size:16px;">›</div>` : ''}
+      ${n.action ? `<div style="color:${n.color};font-size:14px;margin-top:2px;">›</div>` : ''}
     </div>`).join('');
 
   // actionを配列に保持
