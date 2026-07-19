@@ -959,16 +959,29 @@ window.notifAction = function(i) {
 
 async function checkNotifications() {
   try {
+    // 解錠申請（自分が手続きする人として申請した）
     const { data: approved } = await sb.from('unlock_requests')
       .select('owner_id').eq('requester_id', currentUser.id).eq('status', 'approved');
     const { data: pending } = await sb.from('unlock_requests')
       .select('owner_id').eq('requester_id', currentUser.id).eq('status', 'pending');
+
+    // 自分が手続きする人として任命されている
     const { data: asTrustee } = await sb.from('trustees')
-      .select('id').eq('trustee_user_id', currentUser.id);
+      .select('owner_id').eq('trustee_user_id', currentUser.id);
 
-    const hasAny = (approved?.length > 0) || (pending?.length > 0) || (asTrustee?.length > 0);
-    const hasNew = approved?.length > 0 || asTrustee?.length > 0;
+    // チェックイン通知（自分が手続きする人として登録されている人のチェックイン）
+    let hasCheckin = false;
+    const ownerIds = (asTrustee||[]).map(t => t.owner_id);
+    if (ownerIds.length > 0) {
+      const { data: checkins } = await sb.from('checkins')
+        .select('id').in('user_id', ownerIds).limit(1);
+      hasCheckin = checkins?.length > 0;
+    }
 
+    const hasAny = (approved?.length > 0) || (pending?.length > 0) || (asTrustee?.length > 0) || hasCheckin;
+    const hasNew = (approved?.length > 0) || (asTrustee?.length > 0) || hasCheckin;
+
+    // ベルを常に表示（通知があれば）
     const bell = document.getElementById('notif-bell');
     const dot = document.getElementById('notif-dot');
     if (bell) bell.style.display = hasAny ? 'block' : 'none';
@@ -977,7 +990,7 @@ async function checkNotifications() {
     // 申請中バナー
     const banner = document.getElementById('pending-banner');
     if (banner) banner.style.display = pending?.length > 0 ? 'flex' : 'none';
-  } catch(e) {}
+  } catch(e) { console.error('checkNotifications error:', e); }
 }
 </script>
 </body>
