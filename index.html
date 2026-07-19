@@ -802,6 +802,8 @@ async function renderUnlockedSubs(){
     const { data: subs } = await sb.from('subscriptions').select('*').eq('user_id', ownerId);
     const { data: sns } = await sb.from('sns_accounts').select('*').eq('user_id', ownerId);
     const uid = 'u' + ownerId.replace(/-/g,'').substring(0,12);
+    let ownerAvatarUrl = null;
+    try { ownerAvatarUrl = await getAvatarUrl(ownerId); } catch(e) {}
 
     // 詳細HTMLを先に組み立て
     let detailHtml = '';
