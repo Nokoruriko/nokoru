@@ -632,9 +632,13 @@ async function loadTrustees(){
   const ownerIds=asTrusteeData.map(t=>t.owner_id);
   let ownerNames={};
   try{const{data:op}=await sb.from('profiles').select('id,name').in('id',ownerIds);(op||[]).forEach(p=>{ownerNames[p.id]=p.name;});}catch(e){}
-  document.getElementById('trustee-cards').innerHTML=asTrusteeData.map(t=>{
-    const name=ownerNames[t.owner_id]||'—';
-    const status=requestStatus[t.owner_id];
+  // アバターを非同期で取得してカードを組み立て
+  const cards = await Promise.all(asTrusteeData.map(async t => {
+    const name = ownerNames[t.owner_id] || '—';
+    const status = requestStatus[t.owner_id];
+    const avatarUrl = await getAvatarUrl(t.owner_id);
+    const avHtml = avatarHtml(name, avatarUrl, 52);
+
     const statusBadge = status === 'approved'
       ? `<div style="background:var(--success-light);border:1px solid var(--accent-mid);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">🔓</span><div><div style="font-size:12px;font-weight:600;color:var(--success);">${name}さんの解錠が承認されました</div><div style="font-size:11px;color:var(--success);">解錠済みタブで情報を確認できます</div></div></div>`
       : status === 'pending'
@@ -645,17 +649,22 @@ async function loadTrustees(){
       ? 'width:100%;padding:12px;background:#ccc;color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:not-allowed;'
       : 'width:100%;padding:12px;background:var(--danger);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;';
     const btnDisabled = status === 'pending' ? 'disabled' : '';
+
     return `<div class="trustee-card">
       <div class="trustee-card-head">
-        <div class="trustee-avatar" style="background:var(--accent-light);color:var(--accent);">${name.charAt(0)}</div>
-        <div style="flex:1;"><div style="font-size:16px;font-weight:700;">${name}</div><div style="font-size:12px;color:var(--text-muted);">あなたは手続きする人として登録されています</div></div>
+        ${avHtml}
+        <div style="flex:1;margin-left:12px;">
+          <div style="font-size:17px;font-weight:700;">${name}</div>
+          <div style="font-size:12px;color:var(--text-muted);">あなたは手続きする人として登録されています</div>
+        </div>
       </div>
       <div style="padding:0 16px 14px;">
         ${statusBadge}
         <button onclick="startUnlockRequest('${t.owner_id}','${name}')" style="${btnStyle}" ${btnDisabled}>${btnLabel}</button>
       </div>
     </div>`;
-  }).join('');
+  }));
+  document.getElementById('trustee-cards').innerHTML = cards.join('');
 }
 
 function openTrusteeModal(){document.getElementById('trustee-email').value='';openModal('add-trustee');}
@@ -821,7 +830,10 @@ async function renderUnlockedSubs(){
     div.style.cssText = 'margin:12px 16px 0;';
     div.innerHTML = `
       <div id="header-${uid}" style="background:var(--accent);border-radius:var(--radius);padding:16px;cursor:pointer;display:flex;align-items:center;gap:14px;">
-        <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white;flex-shrink:0;">${ownerName.charAt(0)}</div>
+        ${ownerAvatarUrl
+          ? `<img src="${ownerAvatarUrl}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,.4);">`
+          : `<div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:white;flex-shrink:0;">${ownerName.charAt(0)}</div>`
+        }
         <div style="flex:1;">
           <div style="font-size:16px;font-weight:700;color:white;">${ownerName}</div>
           <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px;">サブスク ${subs?.length||0}件 ・ SNS ${sns?.length||0}件　▼ タップして表示</div>
@@ -840,27 +852,58 @@ async function renderUnlockedSubs(){
 }
 
 
+let currentAvatarUrl = null;
+
+async function getAvatarUrl(userId) {
+  const exts = ['jpg', 'jpeg', 'png', 'webp'];
+  for (const ext of exts) {
+    const { data } = sb.storage.from('avatars').getPublicUrl(`${userId}/avatar.${ext}`);
+    if (!data?.publicUrl) continue;
+    try {
+      const res = await fetch(data.publicUrl, { method: 'HEAD' });
+      if (res.ok) return data.publicUrl;
+    } catch(e) {}
+  }
+  return null;
+}
+
+function avatarHtml(name, avatarUrl, size = 44) {
+  const initial = (name||'?').charAt(0);
+  if (avatarUrl) {
+    return `<img src="${avatarUrl}?t=${Date.now()}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;">`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.4)}px;font-weight:700;flex-shrink:0;">${initial}</div>`;
+}
+
+function showAvatarImage(url) {
+  const urlWithTs = url + '?t=' + Date.now();
+  ['avatar-img-home', 'avatar-img-settings'].forEach(id => {
+    const img = document.getElementById(id);
+    if (img) { img.src = urlWithTs; img.style.display = 'block'; }
+  });
+  ['avatar-initial-home', 'avatar-initial-settings'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
 async function loadAvatar() {
   if (!currentUser) return;
-  const avatarPath = `${currentUser.id}/avatar`;
-  const { data } = sb.storage.from('avatars').getPublicUrl(avatarPath);
-  if (!data?.publicUrl) return;
-
-  // 画像が存在するか確認
-  try {
-    const res = await fetch(data.publicUrl, { method: 'HEAD' });
-    if (!res.ok) return;
-
-    // 全てのアバター画像を更新
-    ['avatar-img-home', 'avatar-img-settings'].forEach(id => {
-      const img = document.getElementById(id);
-      if (img) { img.src = data.publicUrl + '?t=' + Date.now(); img.style.display = 'block'; }
-    });
-    ['avatar-initial-home', 'avatar-initial-settings'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-  } catch(e) {}
+  // 拡張子ごとに試す
+  const exts = ['jpg', 'jpeg', 'png', 'webp'];
+  for (const ext of exts) {
+    const filePath = `${currentUser.id}/avatar.${ext}`;
+    const { data } = sb.storage.from('avatars').getPublicUrl(filePath);
+    if (!data?.publicUrl) continue;
+    try {
+      const res = await fetch(data.publicUrl, { method: 'HEAD' });
+      if (res.ok) {
+        currentAvatarUrl = data.publicUrl;
+        showAvatarImage(data.publicUrl);
+        return;
+      }
+    } catch(e) {}
+  }
 }
 
 async function uploadAvatar(input) {
@@ -869,14 +912,27 @@ async function uploadAvatar(input) {
   if (file.size > 2 * 1024 * 1024) { showToast('2MB以下の画像を選択してください'); return; }
 
   showToast('アップロード中...');
-  const { error } = await sb.storage.from('avatars').upload(
-    `${currentUser.id}/avatar`,
-    file,
-    { upsert: true, contentType: file.type }
-  );
+  const ext = file.name.split('.').pop() || 'jpg';
+  const filePath = `${currentUser.id}/avatar.${ext}`;
+
+  // 既存ファイルを削除してから再アップロード
+  await sb.storage.from('avatars').remove([
+    `${currentUser.id}/avatar.jpg`,
+    `${currentUser.id}/avatar.jpeg`,
+    `${currentUser.id}/avatar.png`,
+    `${currentUser.id}/avatar.webp`,
+  ]);
+
+  const { error } = await sb.storage.from('avatars').upload(filePath, file, {
+    upsert: true, contentType: file.type
+  });
   if (error) { showToast('エラー: ' + error.message); return; }
+
+  // URLを保存
+  const { data } = sb.storage.from('avatars').getPublicUrl(filePath);
+  currentAvatarUrl = data.publicUrl;
+  showAvatarImage(data.publicUrl);
   showToast('プロフィール画像を更新しました！');
-  await loadAvatar();
 }
 
 async function doCheckin(){
