@@ -473,10 +473,27 @@ async function doSignup(){
 }
 async function doLogout(){isSetup=false;await sb.auth.signOut();}
 async function confirmDelete(){
-  if(!window.confirm('本当にアカウントを削除しますか？\nサブスク・SNS・設定が全て削除されます。'))return;
+  if(!window.confirm('本当にアカウントを削除しますか？\nサブスク・SNS・設定・アカウント全て削除されます。\nこの操作は取り消せません。'))return;
   const uid=currentUser.id;
-  await Promise.all([sb.from('trustees').delete().eq('owner_id',uid),sb.from('trustees').delete().eq('trustee_user_id',uid),sb.from('subscriptions').delete().eq('user_id',uid),sb.from('sns_accounts').delete().eq('user_id',uid)]);
-  showToast('データを削除しました');isSetup=false;
+  // データを全削除
+  await Promise.all([
+    sb.from('trustees').delete().eq('owner_id',uid),
+    sb.from('trustees').delete().eq('trustee_user_id',uid),
+    sb.from('subscriptions').delete().eq('user_id',uid),
+    sb.from('sns_accounts').delete().eq('user_id',uid),
+    sb.from('unlock_requests').delete().eq('owner_id',uid),
+    sb.from('unlock_requests').delete().eq('requester_id',uid),
+    sb.from('checkins').delete().eq('user_id',uid),
+  ]);
+  // ストレージのアバターも削除
+  try {
+    await sb.storage.from('avatars').remove([`${uid}/avatar.jpg`,`${uid}/avatar.jpeg`,`${uid}/avatar.png`,`${uid}/avatar.webp`]);
+  } catch(e){}
+  // authユーザー自体を削除
+  const { error } = await sb.rpc('delete_user');
+  if(error){ showToast('エラー: ' + error.message); return; }
+  showToast('アカウントを完全に削除しました');
+  isSetup=false;
   setTimeout(()=>sb.auth.signOut(),1500);
 }
 function showAuthError(msg){const el=document.getElementById('auth-error');el.textContent=msg;el.style.display='block';}
