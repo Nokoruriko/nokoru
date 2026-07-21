@@ -596,7 +596,7 @@ async function addSubscription(){
   const{error}=await sb.from('subscriptions').insert({user_id:currentUser.id,name,price,cycle:document.getElementById('sub-cycle').value,payment_method:document.getElementById('sub-payment').value});
   if(error){showToast('エラー: '+error.message);return;}
   closeModal('add-service');
-  ['sub-name','sub-email','sub-password','sub-price'].forEach(id=>document.getElementById(id).value='');
+  ['sub-name','sub-price'].forEach(id=>document.getElementById(id).value='');
   showToast('追加しました！');await loadSubscriptions();
 }
 
