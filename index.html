@@ -605,8 +605,6 @@ function openEditModal(subId) {
   if (!sub) return;
   document.getElementById('edit-sub-id').value = sub.id;
   document.getElementById('edit-sub-name').value = sub.name;
-  document.getElementById('edit-sub-email').value = sub.email_dec || '';
-  document.getElementById('edit-sub-password').value = '';
   document.getElementById('edit-sub-price').value = sub.price;
   document.getElementById('edit-sub-cycle').value = sub.cycle;
   document.getElementById('edit-sub-payment').value = sub.payment_method || 'クレジットカード';
