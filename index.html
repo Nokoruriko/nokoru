@@ -420,6 +420,27 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
   </div>
 </div>
 
+<!-- 解錠申請準備中モーダル -->
+<div class="modal-bg" id="modal-unlock-coming-soon">
+  <div class="modal-box" style="text-align:center;padding:32px 20px 40px;">
+    <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:12px;">解錠申請は準備中です</div>
+    <div style="background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:16px;margin-bottom:20px;text-align:left;">
+      <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px;">🤝 第三者機関との提携を準備中</div>
+      <div style="font-size:12px;color:var(--accent);line-height:1.7;">
+        現在、信頼できる第三者機関（葬儀社・保険会社など）との連携を進めています。<br>
+        提携完了後、安全に解錠申請ができるようになります。<br><br>
+        <strong>今できること：</strong><br>
+        ・サブスクを登録して管理する<br>
+        ・手続きする人を事前に指名する<br>
+        ・チェックインで生存確認を送る
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">準備が整い次第、アプリ内でお知らせします🔔</div>
+    <button class="btn btn-accent" onclick="closeModal('unlock-coming-soon')" style="max-width:180px;margin:0 auto;">閉じる</button>
+  </div>
+</div>
+
 <!-- 申請完了 -->
 <div class="modal-bg" id="modal-unlock-done">
   <div class="modal-box" style="text-align:center;padding:32px 20px 40px;">
@@ -533,7 +554,7 @@ function switchUtab(tab,el){
 function openModal(id){document.getElementById('modal-'+id).classList.add('open');}
 function closeModal(id){document.getElementById('modal-'+id).classList.remove('open');}
 document.addEventListener('click',e=>{
-  ['add-service','edit-service','add-sns','add-trustee','unlock-step1','unlock-step2','unlock-step3','unlock-done'].forEach(id=>{
+  ['add-service','edit-service','add-sns','add-trustee','unlock-step1','unlock-step2','unlock-step3','unlock-done','unlock-coming-soon'].forEach(id=>{
     const m=document.getElementById('modal-'+id);
     if(m&&m.classList.contains('open')&&e.target===m)m.classList.remove('open');
   });
@@ -722,7 +743,7 @@ async function loadTrustees(){
       </div>
       <div style="padding:0 16px 14px;">
         ${statusBadge}
-        <button onclick="startUnlockRequest('${t.owner_id}','${name}')" style="${btnStyle}" ${btnDisabled}>${btnLabel}</button>
+        <button onclick="showUnlockComingSoon()" style="width:100%;padding:12px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;">🔒 解錠を申請する</button>
       </div>
     </div>`;
   }));
@@ -1014,6 +1035,10 @@ async function uploadAvatar(input) {
   currentAvatarUrl = data.publicUrl;
   showAvatarImage(data.publicUrl);
   showToast('プロフィール画像を更新しました！');
+}
+
+function showUnlockComingSoon() {
+  openModal('unlock-coming-soon');
 }
 
 async function doCheckin(){
