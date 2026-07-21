@@ -593,8 +593,7 @@ async function addSubscription(){
   const name=document.getElementById('sub-name').value.trim();
   const price=parseInt(document.getElementById('sub-price').value);
   if(!name||!price){showToast('サービス名と料金は必須です');return;}
-  const key=getEncKey(currentUser);
-  const{error}=await sb.from('subscriptions').insert({user_id:currentUser.id,name,email:encryptText(document.getElementById('sub-email').value,key),password_encrypted:encryptText(document.getElementById('sub-password').value,key),price,cycle:document.getElementById('sub-cycle').value,payment_method:document.getElementById('sub-payment').value});
+  const{error}=await sb.from('subscriptions').insert({user_id:currentUser.id,name,price,cycle:document.getElementById('sub-cycle').value,payment_method:document.getElementById('sub-payment').value});
   if(error){showToast('エラー: '+error.message);return;}
   closeModal('add-service');
   ['sub-name','sub-email','sub-password','sub-price'].forEach(id=>document.getElementById(id).value='');
