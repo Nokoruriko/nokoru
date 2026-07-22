@@ -149,7 +149,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
     </div>
     <div class="inner-tabs">
       <div class="inner-tab active" id="itab-own" onclick="switchInnerTab('own')">自分の設定</div>
-      <div class="inner-tab" id="itab-trustee" onclick="switchInnerTab('trustee')">手続きする人</div>
+      <div class="inner-tab" id="itab-trustee" onclick="switchInnerTab('trustee')" style="display:none;">手続きする人</div>
     </div>
   </div>
   <div class="header" id="header-unlocked" style="display:none;">
@@ -223,9 +223,11 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
           </div>
         </div>
       </div>
-      <div class="section-head"><h2>手続きする人</h2></div>
-      <div style="margin:0 16px 8px;font-size:12px;color:var(--text-muted);line-height:1.6;">亡くなった後にサブスク解約・SNS削除をする人。第一〜第三候補を設定できます。</div>
-      <div id="viewers-list"><div class="loading">読み込み中...</div></div>
+      <div id="trustees-section">
+        <div class="section-head"><h2>手続きする人</h2></div>
+        <div style="margin:0 16px 8px;font-size:12px;color:var(--text-muted);line-height:1.6;">亡くなった後にサブスク解約・SNS削除をする人。第一〜第三候補を設定できます。</div>
+        <div id="viewers-list"><div class="loading">読み込み中...</div></div>
+      </div>
 
     </div>
 
@@ -261,6 +263,32 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
         <div style="font-size:14px;font-weight:600;margin-bottom:12px;">アカウント情報</div>
         <div class="info-row"><span class="info-label">名前</span><span class="info-value" id="settings-name">—</span></div>
         <div class="info-row"><span class="info-label">メール</span><span class="info-value" id="settings-email">—</span></div>
+        <div class="info-row"><span class="info-label">プラン</span><span class="info-value" id="settings-plan">—</span></div>
+      </div>
+      <!-- プラン選択 -->
+      <div style="margin:12px 16px 0;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:10px;">プランを変更する</div>
+        <div id="plan-free" onclick="selectPlan('free')" style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><div style="font-size:14px;font-weight:700;">無料プラン</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">サブスク管理のみ</div></div>
+            <div style="font-size:14px;font-weight:700;color:var(--accent);">¥0</div>
+          </div>
+        </div>
+        <div id="plan-standard" onclick="selectPlan('standard')" style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><div style="font-size:14px;font-weight:700;">スタンダードプラン</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">家族向け・手続きする人を指名・行政書士連携</div></div>
+            <div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:var(--warning);">¥9,800〜</div><div style="font-size:10px;color:var(--text-muted);">一括</div></div>
+          </div>
+        </div>
+        <div id="plan-premium" onclick="selectPlan('premium')" style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:14px;font-weight:700;">プレミアムプラン</div><span class="badge badge-warn">準備中</span></div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">おひとりさま・全て行政書士に代行</div>
+            </div>
+            <div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:var(--text-muted);">¥29,800〜</div><div style="font-size:10px;color:var(--text-muted);">一括</div></div>
+          </div>
+        </div>
       </div>
       <button class="btn btn-ghost" style="margin:0 16px;width:calc(100% - 32px);" onclick="doLogout()">ログアウト</button>
       <div style="margin:20px 16px 0;">
@@ -332,6 +360,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
     <div class="field"><label>料金（円）</label><input type="text" inputmode="numeric" id="edit-sub-price"></div>
     <div class="field"><label>請求サイクル</label><select id="edit-sub-cycle"><option value="monthly">月額</option><option value="yearly">年額</option></select></div>
     <div class="field"><label>支払い方法</label><select id="edit-sub-payment"><option>クレジットカード</option><option>キャリア決済（docomo）</option><option>キャリア決済（au）</option><option>キャリア決済（SoftBank）</option><option>Apple Pay</option><option>Google Pay</option><option>銀行引き落とし</option><option>その他</option></select></div>
+    <div class="field"><label>メモ（任意）</label><textarea id="edit-sub-memo" placeholder="例：開始日 2024/4、毎年4月に価格改定" rows="3" style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text);background:var(--bg);outline:none;resize:vertical;font-family:inherit;"></textarea></div>
     <button class="btn btn-accent" onclick="updateSubscription()" style="margin-bottom:8px;">保存する</button>
     <button class="btn btn-danger" onclick="deleteSubscription()">削除する</button>
   </div>
@@ -455,7 +484,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
 const SUPABASE_URL='https://lusbgrrjoijwktlbyzpy.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1c2JncnJqb2lqd2t0bGJ5enB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzAwOTYsImV4cCI6MjA5ODEwNjA5Nn0.clS010P_sdRtnHTH1_cJatqtdlQ_6pfrUiHAefdJkd4';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,storage:window.localStorage}});
-let currentUser=null,isSetup=false,currentUnlockTarget=null,decryptedSubs=[];
+let currentUser=null,isSetup=false,currentUnlockTarget=null,decryptedSubs=[],currentPlan='free';
 
 function getEncKey(u){return CryptoJS.SHA256(u.id).toString();}
 function encryptText(t,k){return t?CryptoJS.AES.encrypt(t,k).toString():'';}
@@ -477,6 +506,12 @@ async function setupUser(user){
   document.querySelectorAll('.avatar').forEach(el=>el.textContent=init);
   document.getElementById('settings-name').textContent=user.user_metadata?.name||'—';
   document.getElementById('settings-email').textContent=user.email||'—';
+  // プランを取得
+  try {
+    const { data: profile } = await sb.from('profiles').select('plan').eq('id', user.id).single();
+    currentPlan = profile?.plan || 'free';
+    updatePlanUI();
+  } catch(e) {}
   try{await Promise.all([loadSubscriptions(),loadTrustees(),loadSns()]);await checkNotifications();}catch(e){showToast('データの読み込みに失敗しました');}
 }
 
@@ -600,24 +635,25 @@ async function loadSubscriptions(){
   const{data,error}=await sb.from('subscriptions').select('*').eq('user_id',currentUser.id).order('created_at');
   if(error||!data){document.getElementById('subs-list').innerHTML='<div class="empty">読み込みエラー</div>';return;}
   const key=getEncKey(currentUser);
-  decryptedSubs=data.map(s=>({...s,email_dec:decryptText(s.email,key),pw_dec:decryptText(s.password_encrypted,key)}));
+  decryptedSubs=data.map(s=>({...s,email_dec:decryptText(s.email,key),pw_dec:decryptText(s.password_encrypted,key),memo:s.memo||''}));
   let monthly=0;data.forEach(s=>{monthly+=s.cycle==='monthly'?s.price:Math.round(s.price/12);});
   document.getElementById('total-monthly').textContent='¥'+monthly.toLocaleString();
   document.getElementById('total-yearly').textContent='年間: ¥'+(monthly*12).toLocaleString();
   document.getElementById('total-count').textContent=data.length;
   if(!data.length){document.getElementById('subs-list').innerHTML='<div class="empty">サービスがまだありません</div>';return;}
   const colors=['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC'];
-  document.getElementById('subs-list').innerHTML='<div class="card" style="padding:4px 16px;">'+data.map((s,i)=>`<div class="sub-item"><div class="sub-icon" style="background:${colors[i%colors.length]};">${s.name.charAt(0)}</div><div class="sub-info"><div class="sub-name">${s.name}</div><div class="sub-date">${s.payment_method||''}</div></div><div class="sub-right"><div class="sub-price">¥${s.price.toLocaleString()}</div><div class="sub-cycle">/${s.cycle==='monthly'?'月':'年'}</div><span onclick="openEditModal('${s.id}')" style="font-size:11px;color:var(--accent);cursor:pointer;display:block;margin-top:4px;">編集</span></div></div>`).join('')+
+  document.getElementById('subs-list').innerHTML='<div class="card" style="padding:4px 16px;">'+data.map((s,i)=>`<div class="sub-item" style="flex-wrap:wrap;"><div style="display:flex;align-items:center;gap:12px;width:100%;"><div class="sub-icon" style="background:${colors[i%colors.length]};">${s.name.charAt(0)}</div><div class="sub-info"><div class="sub-name">${s.name}</div><div class="sub-date">${s.payment_method||''}</div></div><div class="sub-right"><div class="sub-price">¥${s.price.toLocaleString()}</div><div class="sub-cycle">/${s.cycle==='monthly'?'月':'年'}</div><span onclick="openEditModal('${s.id}')" style="font-size:11px;color:var(--accent);cursor:pointer;display:block;margin-top:4px;">編集</span></div></div>${s.memo?`<div style="width:100%;margin:6px 0 2px;padding:8px 10px;background:var(--accent-light);border-radius:6px;font-size:11px;color:var(--accent);line-height:1.5;">📝 ${s.memo}</div>`:''}</div>`).join('')+
   `</div><div style="margin:8px 16px 0;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">🔒</span><div><div style="font-size:12px;font-weight:600;color:var(--accent);">メール・パスワード保管機能</div><div style="font-size:11px;color:var(--accent);margin-top:2px;">第三者機関との連携後に実装予定</div></div></div>`;
 }
 async function addSubscription(){
   const name=document.getElementById('sub-name').value.trim();
   const price=parseInt(document.getElementById('sub-price').value);
   if(!name||!price){showToast('サービス名と料金は必須です');return;}
-  const{error}=await sb.from('subscriptions').insert({user_id:currentUser.id,name,price,cycle:document.getElementById('sub-cycle').value,payment_method:document.getElementById('sub-payment').value});
+  const memo=document.getElementById('sub-memo').value.trim();
+  const{error}=await sb.from('subscriptions').insert({user_id:currentUser.id,name,price,cycle:document.getElementById('sub-cycle').value,payment_method:document.getElementById('sub-payment').value,memo:memo||null});
   if(error){showToast('エラー: '+error.message);return;}
   closeModal('add-service');
-  ['sub-name','sub-price'].forEach(id=>document.getElementById(id).value='');
+  ['sub-name','sub-price','sub-memo'].forEach(id=>document.getElementById(id).value='');
   showToast('追加しました！');await loadSubscriptions();
 }
 
@@ -626,6 +662,7 @@ function openEditModal(subId) {
   if (!sub) return;
   document.getElementById('edit-sub-id').value = sub.id;
   document.getElementById('edit-sub-name').value = sub.name;
+  document.getElementById('edit-sub-memo').value = sub.memo||'';
   document.getElementById('edit-sub-price').value = sub.price;
   document.getElementById('edit-sub-cycle').value = sub.cycle;
   document.getElementById('edit-sub-payment').value = sub.payment_method || 'クレジットカード';
@@ -641,6 +678,7 @@ async function updateSubscription() {
     name, price,
     cycle: document.getElementById('edit-sub-cycle').value,
     payment_method: document.getElementById('edit-sub-payment').value,
+    memo: document.getElementById('edit-sub-memo').value.trim() || null,
   };
   const { error } = await sb.from('subscriptions').update(updateData).eq('id', id);
   if (error) { showToast('エラー: ' + error.message); return; }
@@ -1039,6 +1077,65 @@ async function uploadAvatar(input) {
 
 function showUnlockComingSoon() {
   openModal('unlock-coming-soon');
+}
+
+function updatePlanUI() {
+  // プラン表示
+  const planLabels = { free:'無料プラン', standard:'スタンダードプラン', premium:'プレミアムプラン' };
+  const planEl = document.getElementById('settings-plan');
+  if (planEl) planEl.textContent = planLabels[currentPlan] || '無料プラン';
+
+  // プランカードの選択状態
+  ['free','standard','premium'].forEach(p => {
+    const el = document.getElementById('plan-' + p);
+    if (!el) return;
+    el.style.border = p === currentPlan
+      ? '2px solid var(--accent)'
+      : '2px solid var(--border)';
+    el.style.background = p === currentPlan ? 'var(--accent-light)' : 'var(--surface)';
+  });
+
+  // スタンダード以上なら「手続きする人」タブを表示
+  const trusteeTab = document.getElementById('itab-trustee');
+  if (trusteeTab) trusteeTab.style.display = currentPlan !== 'free' ? 'flex' : 'none';
+
+  // 無料プランなら手続きする人セクションを非表示
+  const trusteeSection = document.getElementById('trustees-section');
+  if (trusteeSection) trusteeSection.style.display = currentPlan !== 'free' ? 'block' : 'none';
+
+  // 無料プランなら「手続きする人」タブ内に案内を表示
+  if (currentPlan === 'free') {
+    const ownPanel = document.getElementById('panel-own');
+    if (ownPanel && !document.getElementById('free-plan-notice')) {
+      const notice = document.createElement('div');
+      notice.id = 'free-plan-notice';
+      notice.style.cssText = 'margin:0 16px 12px;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:14px 16px;';
+      notice.innerHTML = `<div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:6px;">🔒 スタンダードプラン以上で利用可能</div>
+        <div style="font-size:12px;color:var(--accent);line-height:1.6;">手続きする人の指名・行政書士連携は<br>スタンダードプラン以上でご利用いただけます。</div>
+        <button onclick="goScreen('settings')" style="margin-top:10px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">プランを変更する</button>`;
+      ownPanel.insertBefore(notice, ownPanel.querySelector('.section-head'));
+    }
+  } else {
+    const notice = document.getElementById('free-plan-notice');
+    if (notice) notice.remove();
+  }
+}
+
+async function selectPlan(plan) {
+  if (plan === 'premium') {
+    showToast('プレミアムプランは準備中です');
+    return;
+  }
+  if (plan === currentPlan) return;
+
+  const planNames = { free:'無料プラン', standard:'スタンダードプラン' };
+  if (!window.confirm(`${planNames[plan]}に変更しますか？`)) return;
+
+  const { error } = await sb.from('profiles').update({ plan }).eq('id', currentUser.id);
+  if (error) { showToast('エラー: ' + error.message); return; }
+  currentPlan = plan;
+  updatePlanUI();
+  showToast(`${planNames[plan]}に変更しました！`);
 }
 
 async function doCheckin(){
