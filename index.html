@@ -363,6 +363,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
       <label>パスワード <span style="font-size:10px;color:var(--warning);">※ 現在お試し体験中（保存はされません）</span></label>
       <input type="password" id="sub-password" placeholder="パスワードを入力" disabled style="opacity:0.5;cursor:not-allowed;">
     </div>
+    <div class="field"><label>メモ（任意）</label><textarea id="sub-memo" placeholder="例：開始日 2024/4、解約はWebのみ" rows="2" style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text);background:var(--bg);outline:none;resize:vertical;font-family:inherit;"></textarea></div>
     <div class="field"><label>料金（円）</label><input type="text" inputmode="numeric" id="sub-price" placeholder="例: 990"></div>
     <div class="field"><label>請求サイクル</label><select id="sub-cycle"><option value="monthly">月額</option><option value="yearly">年額</option></select></div>
     <div class="field"><label>支払い方法</label><select id="sub-payment"><option>クレジットカード</option><option>キャリア決済（docomo）</option><option>キャリア決済（au）</option><option>キャリア決済（SoftBank）</option><option>Apple Pay</option><option>Google Pay</option><option>銀行引き落とし</option><option>その他</option></select></div>
@@ -387,6 +388,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
       <label>パスワード <span style="font-size:10px;color:var(--warning);">※ 現在お試し体験中</span></label>
       <input type="password" id="edit-sub-password" placeholder="変更する場合のみ入力" disabled style="opacity:0.5;cursor:not-allowed;">
     </div>
+    <div class="field"><label>メモ（任意）</label><textarea id="edit-sub-memo" placeholder="例：開始日 2024/4、解約はWebのみ" rows="2" style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text);background:var(--bg);outline:none;resize:vertical;font-family:inherit;"></textarea></div>
     <div class="field"><label>料金（円）</label><input type="text" inputmode="numeric" id="edit-sub-price"></div>
     <div class="field"><label>請求サイクル</label><select id="edit-sub-cycle"><option value="monthly">月額</option><option value="yearly">年額</option></select></div>
     <div class="field"><label>支払い方法</label><select id="edit-sub-payment"><option>クレジットカード</option><option>キャリア決済（docomo）</option><option>キャリア決済（au）</option><option>キャリア決済（SoftBank）</option><option>Apple Pay</option><option>Google Pay</option><option>銀行引き落とし</option><option>その他</option></select></div>
@@ -679,7 +681,7 @@ async function addSubscription(){
   const name=document.getElementById('sub-name').value.trim();
   const price=parseInt(document.getElementById('sub-price').value);
   if(!name||!price){showToast('サービス名と料金は必須です');return;}
-  const memo=document.getElementById('sub-memo').value.trim();
+  const memoEl=document.getElementById('sub-memo'); const memo=memoEl?memoEl.value.trim():'';
   const isPaid = currentPlan !== 'free';
   const key = getEncKey(currentUser);
   const emailVal = isPaid ? (document.getElementById('sub-email')?.value||'') : '';
@@ -704,6 +706,8 @@ function openEditModal(subId) {
   document.getElementById('edit-sub-id').value = sub.id;
   document.getElementById('edit-sub-name').value = sub.name;
   document.getElementById('edit-sub-memo').value = sub.memo||'';
+  const editMemoEl = document.getElementById('edit-sub-memo');
+  if (editMemoEl) editMemoEl.value = sub.memo||'';
   if (currentPlan !== 'free') {
     const emailEl = document.getElementById('edit-sub-email');
     const pwEl = document.getElementById('edit-sub-password');
@@ -723,11 +727,12 @@ async function updateSubscription() {
   if (!name || !price) { showToast('サービス名と料金は必須です'); return; }
   const isPaid = currentPlan !== 'free';
   const key = getEncKey(currentUser);
+  const editMemoEl2 = document.getElementById('edit-sub-memo');
   const updateData = {
     name, price,
     cycle: document.getElementById('edit-sub-cycle').value,
     payment_method: document.getElementById('edit-sub-payment').value,
-    memo: document.getElementById('edit-sub-memo').value.trim() || null,
+    memo: editMemoEl2 ? (editMemoEl2.value.trim() || null) : null,
   };
   if (isPaid) {
     const emailVal = document.getElementById('edit-sub-email')?.value||'';
