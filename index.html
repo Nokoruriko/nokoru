@@ -587,10 +587,16 @@ const screens=['home','trust','unlocked','settings'];
 function goScreen(name){
   screens.forEach(s=>{
     document.getElementById('screen-'+s).classList.toggle('active',s===name);
-    document.getElementById('header-'+s).style.display=s===name?'block':'none';
-    document.getElementById('nav-'+s).classList.toggle('active',s===name);
   });
-  if(name==='unlocked')renderUnlockedSubs();  // async
+  // 上部ナビのアクティブ切替
+  ['home','trust','unlocked','settings'].forEach(s=>{
+    const el=document.getElementById('tnav-'+s);
+    if(el) el.classList.toggle('active',s===name);
+  });
+  // もしもの時のインナータブ表示切替
+  const trustTabs=document.getElementById('trust-inner-tabs');
+  if(trustTabs) trustTabs.style.display=name==='trust'?'block':'none';
+  if(name==='unlocked')renderUnlockedSubs();
 }
 function switchInnerTab(tab){
   ['own','trustee'].forEach(t=>{
