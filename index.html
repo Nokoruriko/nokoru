@@ -184,10 +184,16 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
       <span style="font-size:20px;">⏳</span>
       <div><div style="font-size:13px;font-weight:600;color:var(--warning);" id="pending-banner-text">解錠申請中</div><div style="font-size:11px;color:var(--warning);">運営が確認中です</div></div>
     </div>
-    <div class="checkin">
+    <div id="checkin-section" class="checkin">
       <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>
       <div class="checkin-text">今月の生存確認<br><span style="font-size:11px;opacity:.7;">手続きする人への安心のサイン</span></div>
       <button class="checkin-btn" onclick="doCheckin()">チェックイン</button>
+    </div>
+    <!-- 無料プランの場合のチェックイン案内 -->
+    <div id="checkin-upgrade" style="display:none;margin:0 16px 12px;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:12px 14px;">
+      <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px;">💚 チェックイン機能</div>
+      <div style="font-size:11px;color:var(--accent);line-height:1.6;">スタンダードプラン以上でご利用いただけます。</div>
+      <button onclick="goScreen('settings')" style="margin-top:8px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;">プランを変更する</button>
     </div>
   </div>
 
@@ -218,8 +224,8 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
           <div style="display:flex;align-items:center;color:var(--text-muted);font-size:14px;margin-right:6px;flex-shrink:0;">→</div>
           <div style="min-width:100px;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:10px;flex-shrink:0;text-align:center;">
             <div style="width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;margin:0 auto 6px;">4</div>
-            <div style="font-size:10px;font-weight:600;color:var(--accent);margin-bottom:2px;">情報が開示</div>
-            <div style="font-size:9px;color:var(--accent);line-height:1.4;">解約・削除を実行</div>
+            <div style="font-size:10px;font-weight:600;color:var(--accent);margin-bottom:2px;">解錠・情報開示</div>
+            <div style="font-size:9px;color:var(--accent);line-height:1.4;">手続きする人が解約</div>
           </div>
         </div>
       </div>
@@ -341,6 +347,8 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
         onfocus="showServiceDropdown()" oninput="filterServices(this.value)">
       <div id="service-dropdown"></div>
     </div>
+    <div id="sub-email-field" class="field" style="display:none;"><label>メールアドレス</label><input type="email" id="sub-email" placeholder="例: taro@email.com"></div>
+    <div id="sub-password-field" class="field" style="display:none;"><label>パスワード</label><input type="password" id="sub-password" placeholder="パスワードを入力"></div>
     <div class="field"><label>料金（円）</label><input type="text" inputmode="numeric" id="sub-price" placeholder="例: 990"></div>
     <div class="field"><label>請求サイクル</label><select id="sub-cycle"><option value="monthly">月額</option><option value="yearly">年額</option></select></div>
     <div class="field"><label>支払い方法</label><select id="sub-payment"><option>クレジットカード</option><option>キャリア決済（docomo）</option><option>キャリア決済（au）</option><option>キャリア決済（SoftBank）</option><option>Apple Pay</option><option>Google Pay</option><option>銀行引き落とし</option><option>その他</option></select></div>
@@ -357,6 +365,8 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
       <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">サービス名</label>
       <input type="text" id="edit-sub-name" style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;outline:none;">
     </div>
+    <div id="edit-email-field" class="field" style="display:none;"><label>メールアドレス</label><input type="email" id="edit-sub-email" placeholder="例: taro@email.com"></div>
+    <div id="edit-password-field" class="field" style="display:none;"><label>パスワード</label><input type="password" id="edit-sub-password" placeholder="変更する場合のみ入力"></div>
     <div class="field"><label>料金（円）</label><input type="text" inputmode="numeric" id="edit-sub-price"></div>
     <div class="field"><label>請求サイクル</label><select id="edit-sub-cycle"><option value="monthly">月額</option><option value="yearly">年額</option></select></div>
     <div class="field"><label>支払い方法</label><select id="edit-sub-payment"><option>クレジットカード</option><option>キャリア決済（docomo）</option><option>キャリア決済（au）</option><option>キャリア決済（SoftBank）</option><option>Apple Pay</option><option>Google Pay</option><option>銀行引き落とし</option><option>その他</option></select></div>
@@ -650,7 +660,18 @@ async function addSubscription(){
   const price=parseInt(document.getElementById('sub-price').value);
   if(!name||!price){showToast('サービス名と料金は必須です');return;}
   const memo=document.getElementById('sub-memo').value.trim();
-  const{error}=await sb.from('subscriptions').insert({user_id:currentUser.id,name,price,cycle:document.getElementById('sub-cycle').value,payment_method:document.getElementById('sub-payment').value,memo:memo||null});
+  const isPaid = currentPlan !== 'free';
+  const key = getEncKey(currentUser);
+  const emailVal = isPaid ? (document.getElementById('sub-email')?.value||'') : '';
+  const pwVal = isPaid ? (document.getElementById('sub-password')?.value||'') : '';
+  const{error}=await sb.from('subscriptions').insert({
+    user_id:currentUser.id, name, price,
+    cycle:document.getElementById('sub-cycle').value,
+    payment_method:document.getElementById('sub-payment').value,
+    memo:memo||null,
+    email: isPaid ? encryptText(emailVal, key) : null,
+    password_encrypted: isPaid ? encryptText(pwVal, key) : null,
+  });
   if(error){showToast('エラー: '+error.message);return;}
   closeModal('add-service');
   ['sub-name','sub-price','sub-memo'].forEach(id=>document.getElementById(id).value='');
@@ -663,6 +684,12 @@ function openEditModal(subId) {
   document.getElementById('edit-sub-id').value = sub.id;
   document.getElementById('edit-sub-name').value = sub.name;
   document.getElementById('edit-sub-memo').value = sub.memo||'';
+  if (currentPlan !== 'free') {
+    const emailEl = document.getElementById('edit-sub-email');
+    const pwEl = document.getElementById('edit-sub-password');
+    if (emailEl) emailEl.value = sub.email_dec||'';
+    if (pwEl) pwEl.value = '';
+  }
   document.getElementById('edit-sub-price').value = sub.price;
   document.getElementById('edit-sub-cycle').value = sub.cycle;
   document.getElementById('edit-sub-payment').value = sub.payment_method || 'クレジットカード';
@@ -674,12 +701,20 @@ async function updateSubscription() {
   const name = document.getElementById('edit-sub-name').value.trim();
   const price = parseInt(document.getElementById('edit-sub-price').value);
   if (!name || !price) { showToast('サービス名と料金は必須です'); return; }
+  const isPaid = currentPlan !== 'free';
+  const key = getEncKey(currentUser);
   const updateData = {
     name, price,
     cycle: document.getElementById('edit-sub-cycle').value,
     payment_method: document.getElementById('edit-sub-payment').value,
     memo: document.getElementById('edit-sub-memo').value.trim() || null,
   };
+  if (isPaid) {
+    const emailVal = document.getElementById('edit-sub-email')?.value||'';
+    const pwVal = document.getElementById('edit-sub-password')?.value||'';
+    if (emailVal) updateData.email = encryptText(emailVal, key);
+    if (pwVal) updateData.password_encrypted = encryptText(pwVal, key);
+  }
   const { error } = await sb.from('subscriptions').update(updateData).eq('id', id);
   if (error) { showToast('エラー: ' + error.message); return; }
   closeModal('edit-service');
@@ -1102,6 +1137,47 @@ function updatePlanUI() {
   // 無料プランなら手続きする人セクションを非表示
   const trusteeSection = document.getElementById('trustees-section');
   if (trusteeSection) trusteeSection.style.display = currentPlan !== 'free' ? 'block' : 'none';
+
+  // チェックインボックス
+  const checkinBox = document.getElementById('checkin-box');
+  if (checkinBox) checkinBox.style.display = currentPlan !== 'free' ? 'flex' : 'none';
+
+  // メール・PW欄の表示切替（追加モーダル）
+  ['sub-email-field','sub-password-field'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = currentPlan !== 'free' ? 'block' : 'none';
+  });
+  // メール・PW欄の表示切替（編集モーダル）
+  ['edit-email-field','edit-password-field'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = currentPlan !== 'free' ? 'block' : 'none';
+  });
+  // サブスク一覧の「近日公開」バナー
+  const paidBanner = document.getElementById('paid-features-banner');
+  if (currentPlan === 'free') {
+    if (!paidBanner) {
+      const banner = document.createElement('div');
+      banner.id = 'paid-features-banner';
+      banner.style.cssText = 'margin:8px 16px 0;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;';
+      banner.innerHTML = `<span style="font-size:18px;">🔒</span><div><div style="font-size:12px;font-weight:600;color:var(--accent);">メール・パスワード保管・チェックイン機能</div><div style="font-size:11px;color:var(--accent);margin-top:2px;">スタンダードプラン以上でご利用いただけます</div></div><button onclick="goScreen('settings')" style="margin-left:auto;background:var(--accent);color:white;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">変更</button>`;
+      const addBtn = document.querySelector('.add-btn');
+      if (addBtn) addBtn.parentNode.insertBefore(banner, addBtn.nextSibling);
+    }
+  } else {
+    if (paidBanner) paidBanner.remove();
+  }
+
+  // チェックイン表示切り替え
+  const checkinSection = document.getElementById('checkin-section');
+  const checkinUpgrade = document.getElementById('checkin-upgrade');
+  if (checkinSection) checkinSection.style.display = currentPlan === 'free' ? 'none' : 'flex';
+  if (checkinUpgrade) checkinUpgrade.style.display = currentPlan === 'free' ? 'block' : 'none';
+
+  // メール・PW欄（将来実装時用：スタンダード以上で表示）
+  const credSection = document.getElementById('sub-credential-section');
+  const credUpgrade = document.getElementById('sub-credential-upgrade');
+  if (credSection) credSection.style.display = currentPlan !== 'free' ? 'block' : 'none';
+  if (credUpgrade) credUpgrade.style.display = currentPlan === 'free' ? 'block' : 'none';
 
   // 無料プランなら「手続きする人」タブ内に案内を表示
   if (currentPlan === 'free') {
