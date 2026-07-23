@@ -277,13 +277,13 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
         <div id="plan-free" onclick="selectPlan('free')" style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div><div style="font-size:14px;font-weight:700;">無料プラン</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">サブスク管理のみ</div></div>
-            <div style="font-size:14px;font-weight:700;color:var(--accent);">¥0</div>
+
           </div>
         </div>
         <div id="plan-standard" onclick="selectPlan('standard')" style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div><div style="font-size:14px;font-weight:700;">スタンダードプラン</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">家族向け・手続きする人を指名・行政書士連携</div></div>
-            <div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:var(--warning);">¥9,800〜</div><div style="font-size:10px;color:var(--text-muted);">一括</div></div>
+            <div><div style="font-size:14px;font-weight:700;">スタンダードプラン</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">家族向け・手続きする人を指名・第三者機関連携（お試し体験あり）</div></div>
+
           </div>
         </div>
         <div id="plan-premium" onclick="selectPlan('premium')" style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;">
@@ -292,7 +292,7 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
               <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:14px;font-weight:700;">プレミアムプラン</div><span class="badge badge-warn">準備中</span></div>
               <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">おひとりさま・全て行政書士に代行</div>
             </div>
-            <div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:var(--text-muted);">¥29,800〜</div><div style="font-size:10px;color:var(--text-muted);">一括</div></div>
+
           </div>
         </div>
       </div>
@@ -347,8 +347,14 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
         onfocus="showServiceDropdown()" oninput="filterServices(this.value)">
       <div id="service-dropdown"></div>
     </div>
-    <div id="sub-email-field" class="field" style="display:none;"><label>メールアドレス</label><input type="email" id="sub-email" placeholder="例: taro@email.com"></div>
-    <div id="sub-password-field" class="field" style="display:none;"><label>パスワード</label><input type="password" id="sub-password" placeholder="パスワードを入力"></div>
+    <div id="sub-email-field" class="field" style="display:none;">
+      <label>メールアドレス <span style="font-size:10px;color:var(--warning);">※ 現在お試し体験中（保存はされません）</span></label>
+      <input type="email" id="sub-email" placeholder="例: taro@email.com" disabled style="opacity:0.5;cursor:not-allowed;">
+    </div>
+    <div id="sub-password-field" class="field" style="display:none;">
+      <label>パスワード <span style="font-size:10px;color:var(--warning);">※ 現在お試し体験中（保存はされません）</span></label>
+      <input type="password" id="sub-password" placeholder="パスワードを入力" disabled style="opacity:0.5;cursor:not-allowed;">
+    </div>
     <div class="field"><label>料金（円）</label><input type="text" inputmode="numeric" id="sub-price" placeholder="例: 990"></div>
     <div class="field"><label>請求サイクル</label><select id="sub-cycle"><option value="monthly">月額</option><option value="yearly">年額</option></select></div>
     <div class="field"><label>支払い方法</label><select id="sub-payment"><option>クレジットカード</option><option>キャリア決済（docomo）</option><option>キャリア決済（au）</option><option>キャリア決済（SoftBank）</option><option>Apple Pay</option><option>Google Pay</option><option>銀行引き落とし</option><option>その他</option></select></div>
@@ -365,8 +371,14 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
       <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">サービス名</label>
       <input type="text" id="edit-sub-name" style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;outline:none;">
     </div>
-    <div id="edit-email-field" class="field" style="display:none;"><label>メールアドレス</label><input type="email" id="edit-sub-email" placeholder="例: taro@email.com"></div>
-    <div id="edit-password-field" class="field" style="display:none;"><label>パスワード</label><input type="password" id="edit-sub-password" placeholder="変更する場合のみ入力"></div>
+    <div id="edit-email-field" class="field" style="display:none;">
+      <label>メールアドレス <span style="font-size:10px;color:var(--warning);">※ 現在お試し体験中</span></label>
+      <input type="email" id="edit-sub-email" placeholder="例: taro@email.com" disabled style="opacity:0.5;cursor:not-allowed;">
+    </div>
+    <div id="edit-password-field" class="field" style="display:none;">
+      <label>パスワード <span style="font-size:10px;color:var(--warning);">※ 現在お試し体験中</span></label>
+      <input type="password" id="edit-sub-password" placeholder="変更する場合のみ入力" disabled style="opacity:0.5;cursor:not-allowed;">
+    </div>
     <div class="field"><label>料金（円）</label><input type="text" inputmode="numeric" id="edit-sub-price"></div>
     <div class="field"><label>請求サイクル</label><select id="edit-sub-cycle"><option value="monthly">月額</option><option value="yearly">年額</option></select></div>
     <div class="field"><label>支払い方法</label><select id="edit-sub-payment"><option>クレジットカード</option><option>キャリア決済（docomo）</option><option>キャリア決済（au）</option><option>キャリア決済（SoftBank）</option><option>Apple Pay</option><option>Google Pay</option><option>銀行引き落とし</option><option>その他</option></select></div>
@@ -653,7 +665,7 @@ async function loadSubscriptions(){
   if(!data.length){document.getElementById('subs-list').innerHTML='<div class="empty">サービスがまだありません</div>';return;}
   const colors=['#E50914','#1DB954','#0078D4','#FF9900','#06C755','#6B47DC'];
   document.getElementById('subs-list').innerHTML='<div class="card" style="padding:4px 16px;">'+data.map((s,i)=>`<div class="sub-item" style="flex-wrap:wrap;"><div style="display:flex;align-items:center;gap:12px;width:100%;"><div class="sub-icon" style="background:${colors[i%colors.length]};">${s.name.charAt(0)}</div><div class="sub-info"><div class="sub-name">${s.name}</div><div class="sub-date">${s.payment_method||''}</div></div><div class="sub-right"><div class="sub-price">¥${s.price.toLocaleString()}</div><div class="sub-cycle">/${s.cycle==='monthly'?'月':'年'}</div><span onclick="openEditModal('${s.id}')" style="font-size:11px;color:var(--accent);cursor:pointer;display:block;margin-top:4px;">編集</span></div></div>${s.memo?`<div style="width:100%;margin:6px 0 2px;padding:8px 10px;background:var(--accent-light);border-radius:6px;font-size:11px;color:var(--accent);line-height:1.5;">📝 ${s.memo}</div>`:''}</div>`).join('')+
-  `</div><div style="margin:8px 16px 0;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">🔒</span><div><div style="font-size:12px;font-weight:600;color:var(--accent);">メール・パスワード保管機能</div><div style="font-size:11px;color:var(--accent);margin-top:2px;">第三者機関との連携後に実装予定</div></div></div>`;
+  `</div>`;
 }
 async function addSubscription(){
   const name=document.getElementById('sub-name').value.trim();
@@ -1159,7 +1171,7 @@ function updatePlanUI() {
       const banner = document.createElement('div');
       banner.id = 'paid-features-banner';
       banner.style.cssText = 'margin:8px 16px 0;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;';
-      banner.innerHTML = `<span style="font-size:18px;">🔒</span><div><div style="font-size:12px;font-weight:600;color:var(--accent);">メール・パスワード保管・チェックイン機能</div><div style="font-size:11px;color:var(--accent);margin-top:2px;">スタンダードプラン以上でご利用いただけます</div></div><button onclick="goScreen('settings')" style="margin-left:auto;background:var(--accent);color:white;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">変更</button>`;
+      banner.innerHTML = `<span style="font-size:18px;">🔒</span><div><div style="font-size:12px;font-weight:600;color:var(--accent);">メール・パスワード保管・チェックイン機能</div><div style="font-size:11px;color:var(--accent);margin-top:2px;">スタンダードプラン以上（お試し体験あり）</div></div><button onclick="goScreen('settings')" style="margin-left:auto;background:var(--accent);color:white;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">変更</button>`;
       const addBtn = document.querySelector('.add-btn');
       if (addBtn) addBtn.parentNode.insertBefore(banner, addBtn.nextSibling);
     }
