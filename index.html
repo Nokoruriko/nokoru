@@ -218,8 +218,8 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
           <div style="display:flex;align-items:center;color:var(--text-muted);font-size:14px;margin-right:6px;flex-shrink:0;">→</div>
           <div style="min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-right:6px;flex-shrink:0;text-align:center;">
             <div style="width:22px;height:22px;background:var(--warning);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;margin:0 auto 6px;">3</div>
-            <div style="font-size:10px;font-weight:600;margin-bottom:2px;">運営が確認</div>
-            <div style="font-size:9px;color:var(--text-muted);line-height:1.4;">24時間以内</div>
+            <div style="font-size:10px;font-weight:600;margin-bottom:2px;">第三者機関が確認</div>
+            <div style="font-size:9px;color:var(--text-muted);line-height:1.4;">死亡確認・解錠</div>
           </div>
           <div style="display:flex;align-items:center;color:var(--text-muted);font-size:14px;margin-right:6px;flex-shrink:0;">→</div>
           <div style="min-width:100px;background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius);padding:10px;flex-shrink:0;text-align:center;">
@@ -282,17 +282,25 @@ body{font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;backgro
         </div>
         <div id="plan-standard" onclick="selectPlan('standard')" style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div><div style="font-size:14px;font-weight:700;">スタンダードプラン</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">家族向け・手続きする人を指名・第三者機関連携（お試し体験あり）</div></div>
-
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div style="font-size:14px;font-weight:700;">スタンダードプラン</div>
+                <span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:2px 7px;border-radius:99px;font-weight:600;">お試し期間中</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">家族向け</div>
+              <div style="font-size:11px;color:var(--accent);font-weight:600;margin-top:2px;">※ 現在無料でお使いいただけます</div>
+            </div>
           </div>
         </div>
         <div id="plan-premium" onclick="selectPlan('premium')" style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:14px;font-weight:700;">プレミアムプラン</div><span class="badge badge-warn">準備中</span></div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">おひとりさま・全て行政書士に代行</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div style="font-size:14px;font-weight:700;">プレミアムプラン</div>
+                <span class="badge badge-warn">準備中</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">おひとりさま向け</div>
             </div>
-
           </div>
         </div>
       </div>
